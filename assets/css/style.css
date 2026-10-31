@@ -433,4 +433,6 @@ html.loading .media img{opacity:0}
 .g .in.tl{transform:none}
 .g .in > img,.g .in > video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 video{display:block}
+.b-media{position:relative;width:100%;overflow:hidden}
+.b-media > img,.b-media > video{display:block;width:100%;height:auto}
 @media (max-width:800px){ .g-row{display:flex;flex-direction:column;gap:1.2rem} .g-row > *{width:100%} }

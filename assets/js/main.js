@@ -350,7 +350,10 @@
     });
     return h+'</div>';
   }
+  function plainMedia(src){ return src?'<div class="b-media">'+mediaTag(src,"",false)+'</div>':''; }
   function blockHTML(bk){
+    if(bk.type==="media"&&bk.src) return plainMedia(bk.src);
+    if(bk.type==="row"&&bk.items) return '<div class="g-row b-row" style="grid-template-columns:repeat('+bk.items.length+',minmax(0,1fr))">'+bk.items.map(function(x){ return x?plainMedia(x):'<div></div>'; }).join("")+'</div>';
     if(bk.type==="text") return '<div class="p-grid p-numbered"><span class="p-num" aria-hidden="true"></span><div class="p-desc p-r"><span class="k">'+esc(bk.label)+'</span><p>'+esc(bk.text)+'</p></div></div>';
     if(bk.type==="row") return '<div class="g-row" style="grid-template-columns:repeat('+(bk.cells||[]).length+',minmax(0,1fr))">'+(bk.cells||[]).map(frameHTML).join("")+'</div>';
     return frameHTML(bk);   /* "media" and "frame" */

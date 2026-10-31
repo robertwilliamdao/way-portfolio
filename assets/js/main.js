@@ -24,6 +24,10 @@
 
   var SCR_CH="01/\\_+-.:";
   /* ---------- Works: cards rendered from data/works.js (window.WORKS) ---------- */
+  /* Builder preview (/?preview=1): use the unsaved data the builder left in this browser */
+  if(/[?&]preview=1/.test(location.search)){
+    try{ var pv=JSON.parse(localStorage.getItem("way-preview")||"null"); if(pv&&pv.works){ window.WORKS=pv.works; window.ASSET_MAP=Object.assign({},window.ASSET_MAP||{},pv.map||{}); } }catch(e){}
+  }
   var WORKS=window.WORKS||[];
   function asset(p){ return (window.ASSET_MAP&&window.ASSET_MAP[p])||p; }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }

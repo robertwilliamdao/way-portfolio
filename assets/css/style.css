@@ -87,7 +87,6 @@ h1{font-weight:500;font-size:6rem;line-height:.92;letter-spacing:-.025em}
   font-size:1.4rem;white-space:nowrap;opacity:0;pointer-events:none}
 .cells{position:absolute;inset:0;z-index:1;pointer-events:none}
 .cells canvas{position:absolute;left:0;top:0;opacity:0;display:block}
-  white-space:nowrap;font-variant-numeric:tabular-nums}
 
 .details{display:flex;justify-content:space-between;align-items:flex-start}
 .label{display:flex;gap:2rem;align-items:flex-start}
@@ -105,8 +104,6 @@ h1{font-weight:500;font-size:6rem;line-height:.92;letter-spacing:-.025em}
 .end-color{display:flex;align-items:flex-end}
 .end .arw svg{width:1.8rem;height:2.4rem;opacity:.2}
 
-  padding:.6rem .6rem .6rem 1.2rem;border:.05rem dashed var(--beige-40);border-radius:100rem;background:var(--bg-80);
-  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:1.1rem;color:var(--beige-40)}
 
 /* Small screens: mobile design not supplied yet, so stack and keep text readable */
 @media (max-width:800px){

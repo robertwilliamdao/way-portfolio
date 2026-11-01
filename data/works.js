@@ -20,7 +20,7 @@ window.WORKS = [
     "descriptions": [
       {
         "label": "Overview",
-        "text": "PROTOCOL is a Singapore-based preventive health brand that tests 100+ biomarkers and pairs every result with a doctor and a plan. Its core message is simple: “normal” results aren’t the same as optimal health."
+        "text": "A calm, human visual world for a preventive health brand. The work brings together brand, digital product, and content into one connected experience, turning complex health data into something warm, clear, and easy to trust."
       },
       {
         "label": "Assignment",

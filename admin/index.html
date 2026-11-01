@@ -53,6 +53,24 @@ section > h2 button{font-size:14px}
 .slot.stack{flex-direction:column;align-items:stretch}
 .slot.stack .thumb.big{width:100%}
 .cols{display:grid;gap:12px}
+.lgrid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.lg-full{grid-template-columns:1fr}
+.lg-three-46{grid-template-columns:repeat(3,minmax(0,1fr))}
+.lg-half-45-169.swapped .lc0,.lg-bento.swapped .lc0{order:2}
+.lg-bento .lc0{grid-column:1;grid-row:1 / span 2}
+.lg-bento .lc1{grid-column:2;grid-row:1} .lg-bento .lc2{grid-column:2;grid-row:2}
+.lg-bento.swapped .lc0{grid-column:2} .lg-bento.swapped .lc1,.lg-bento.swapped .lc2{grid-column:1}
+.lcell{display:flex;flex-direction:column;gap:6px}
+.spec{font-size:11px;color:var(--mut)}
+.meta{font-size:12px;color:var(--mut)} .meta.warn{color:#ffb86b}
+.sw{flex-direction:row;align-items:center;gap:6px;color:var(--fg);font-size:13px;cursor:pointer}
+.sw input{width:auto}
+.thumb.big img,.thumb.big video{height:100%;object-fit:cover}
+.lpick{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.lpick button{border-radius:0;display:flex;flex-direction:column;gap:8px;align-items:stretch;padding:10px;white-space:normal;text-align:left}
+.mini{display:grid;gap:3px;height:54px}
+.mini i{background:var(--mut);opacity:.5;display:block}
+@media (max-width:800px){.lpick{grid-template-columns:repeat(2,1fr)}.lgrid,.lg-three-46{grid-template-columns:1fr}.lg-bento .lc0,.lg-bento .lc1,.lg-bento .lc2{grid-column:auto;grid-row:auto}}
 .slot .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .slot .path{color:var(--mut);font-size:12px;word-break:break-all}
 .items{display:flex;flex-direction:column;gap:10px}
@@ -110,9 +128,11 @@ function pickSrc(f){ if(!f) return ""; return f.src||f.bg||((f.items||[])[0]||{}
 function migrate(w){
   w.blocks=(w.blocks||[]).map(function(b){
     if(b.type==="text") return b;
-    if(b.type==="row") return {type:"row",items:(b.items&&typeof b.items[0]==="string")?b.items:(b.cells||[]).map(pickSrc)};
-    return {type:"media",src:pickSrc(b)};
-  }).filter(function(b){ return b.type==="text"||b.src||(b.items&&b.items.length); });
+    if(b.type==="layout") return b;
+    if(b.type==="row"){ var its=(b.items&&typeof b.items[0]==="string")?b.items:(b.cells||[]).map(pickSrc);
+      return its.length>=3?{type:"layout",layout:"three-46",items:its.slice(0,3)}:{type:"layout",layout:"half-45",items:[its[0]||"",its[1]||""]}; }
+    return {type:"layout",layout:"full",items:[pickSrc(b)]};
+  }).filter(function(b){ return b.type==="text"||(b.items&&b.items.some(Boolean)); });
   return w;
 }
 function serialize(){ return "/* Edited by the builder (admin/). Every work: card info, detail info, and a list of layout blocks. */\nwindow.WORKS = "+JSON.stringify(works,function(k,v){ return k==="_idTouched"?undefined:v; },2)+";\n"; }
@@ -159,8 +179,20 @@ function processFile(file,base){
 function mediaSlot(obj,key,opts){
   opts=opts||{};
   var th=h("div",{class:"thumb"+(opts.wide||opts.stack?" big":"")}), path=h("div",{class:"path"}), url=h("input",{placeholder:"…hoặc dán link https (R2, CDN)"});
-  function paint(){ var p=obj[key]; th.innerHTML=""; path.textContent=p||"Chưa có";
-    if(p) th.appendChild(isVideo(p)?h("video",{src:src(p),muted:true,loop:true,autoplay:true,playsinline:true}):h("img",{src:src(p),alt:""}));
+  var meta=h("div",{class:"meta"});
+  function check(w,hh){
+    if(!w||!hh){ meta.textContent=""; return; }
+    var msg=w+"×"+hh+" · "+ratioText(w,hh), warn=false;
+    if(opts.ratio&&Math.abs((w/hh)/opts.ratio-1)>.04){ msg+=" — khác tỉ lệ ô ("+opts.ratioLabel+"), sẽ bị cắt bớt"; warn=true; }
+    else if(w<1000&&!isVideo(obj[key])){ msg+=" — ảnh hơi nhỏ, có thể mờ trên màn lớn"; warn=true; }
+    meta.textContent=msg; meta.className="meta"+(warn?" warn":"");
+  }
+  function paint(){ var p=obj[key]; th.innerHTML=""; path.textContent=p||"Chưa có"; meta.textContent="";
+    if(p){ var el=isVideo(p)?h("video",{src:src(p),muted:true,loop:true,autoplay:true,playsinline:true}):h("img",{src:src(p),alt:""});
+      if(opts.ratio) th.style.aspectRatio=String(opts.ratio);
+      el.addEventListener(isVideo(p)?"loadedmetadata":"load",function(){ check(el.videoWidth||el.naturalWidth,el.videoHeight||el.naturalHeight); });
+      th.appendChild(el); }
+    else if(opts.ratio) th.style.aspectRatio=String(opts.ratio);
     url.value=/^https?:/.test(p||"")?p:""; }
   var file=h("input",{type:"file",accept:opts.imagesOnly?"image/*":"image/*,video/mp4,video/webm,video/quicktime",style:"display:none",on:{change:function(){
     var f=file.files[0]; if(!f) return; toast("Đang xử lý…",60000);
@@ -171,7 +203,7 @@ function mediaSlot(obj,key,opts){
   return h("div",{class:"slot"+(opts.stack?" stack":"")},[th,h("div",{class:"info"},[
     h("div",{class:"row"},[h("button",{class:"shrink",on:{click:function(){ file.click(); }}},[opts.imagesOnly?"Chọn ảnh":"Chọn ảnh / video"]),
       obj[key]&&!opts.required?h("button",{class:"ghost shrink",on:{click:function(){ if(Array.isArray(obj)) obj[key]=""; else delete obj[key]; paint(); mark(); }}},["Bỏ"]):null]),
-    url,path,file])]);
+    url,meta,path,file])]);
 }
 
 /* ======== Field helpers ======== */
@@ -192,15 +224,34 @@ function ctrls(arr,i){ return h("div",{class:"row",style:"flex:none;gap:4px"},[
   h("button",{class:"ghost",title:"Lên",on:{click:function(){ move(arr,i,-1); }}},["↑"]),
   h("button",{class:"ghost",title:"Xuống",on:{click:function(){ move(arr,i,1); }}},["↓"]),
   h("button",{class:"ghost",title:"Xoá",on:{click:function(){ if(confirm("Xoá mục này?")){ arr.splice(i,1); mark(); renderEditor(); } }}},["Xoá"])]); }
-/* ======== Block editors: an image/video, a row of 2–3, or a numbered text ======== */
+/* ======== Layout presets (Figma: "Layout preset", frame width 1920, gap 20) ======== */
+var LAYOUTS=[
+  {id:"full",name:"1 cột · 16:9",slots:[{ar:16/9,label:"16:9",size:"1920×1080"}]},
+  {id:"half-45-169",name:"2 cột · 4:5 + 16:9",swap:true,slots:[{ar:4/5,label:"4:5",size:"950×1188"},{ar:16/9,label:"16:9",size:"950×534"}]},
+  {id:"half-45",name:"2 cột · 4:5",slots:[{ar:4/5,label:"4:5",size:"950×1188"},{ar:4/5,label:"4:5",size:"950×1188"}]},
+  {id:"bento",name:"2 cột · bento",swap:true,slots:[{ar:4/5,label:"4:5",size:"950×1188"},{ar:950/584,label:"~16:10",size:"950×584"},{ar:950/584,label:"~16:10",size:"950×584"}]},
+  {id:"three-46",name:"3 cột · 4:6",slots:[{ar:2/3,label:"4:6",size:"627×940"},{ar:2/3,label:"4:6",size:"627×940"},{ar:2/3,label:"4:6",size:"627×940"}]}
+];
+function L(id){ return LAYOUTS.filter(function(l){ return l.id===id; })[0]||LAYOUTS[0]; }
+function gcd(x,y){ return y?gcd(y,x%y):x; }
+function ratioText(w,hh){ var g=gcd(w,hh), a=w/g, b=hh/g; var known=[[16,9],[4,5],[2,3],[1,1],[3,2],[16,10],[9,16],[21,9],[4,3]];
+  for(var i=0;i<known.length;i++) if(Math.abs(w/hh-known[i][0]/known[i][1])<.01) return known[i][0]+":"+known[i][1];
+  return a<=50&&b<=50?a+":"+b:(w/hh).toFixed(2)+":1"; }
+
+/* ======== Block editors: a layout preset or a numbered text ======== */
 function blockEditor(bk,i,arr){
   if(bk.type==="text") return h("div",{class:"box"},[h("div",{class:"bh"},[h("b",{},["Đoạn mô tả (01, 02…)"]),ctrls(arr,i)]),field("Tiêu đề nhỏ",bk,"label"),field("Nội dung",bk,"text",{area:true,rows:4})]);
-  if(bk.type==="row"){
-    var cols=h("div",{class:"cols",style:"grid-template-columns:repeat("+bk.items.length+",minmax(0,1fr))"});
-    bk.items.forEach(function(_,k){ cols.appendChild(mediaSlot(bk.items,k,{stack:true})); });
-    return h("div",{class:"box"},[h("div",{class:"bh"},[h("b",{},["Hàng "+bk.items.length+" cột"]),ctrls(arr,i)]),cols]);
-  }
-  return h("div",{class:"box"},[h("div",{class:"bh"},[h("b",{},["Ảnh / video"]),ctrls(arr,i)]),mediaSlot(bk,"src",{wide:true})]);
+  var lay=L(bk.layout); bk.items=bk.items||[]; while(bk.items.length<lay.slots.length) bk.items.push("");
+  var order=lay.slots.map(function(_,k){ return k; });
+  var grid=h("div",{class:"lgrid lg-"+lay.id+(bk.swap?" swapped":"")});
+  lay.slots.forEach(function(sl,k){
+    grid.appendChild(h("div",{class:"lcell lc"+k},[
+      h("div",{class:"spec"},["Ô "+(k+1)+" · "+sl.label+" · xuất "+sl.size]),
+      mediaSlot(bk.items,k,{stack:true,ratio:sl.ar,ratioLabel:sl.label})]));
+  });
+  var head=[h("b",{},[lay.name])];
+  if(lay.swap) head.push(h("label",{class:"sw"},[h("input",{type:"checkbox",checked:bk.swap?true:null,on:{change:function(e){ bk.swap=e.target.checked; mark(); renderEditor(); }}}),"Đổi trái ↔ phải"]));
+  return h("div",{class:"box"},[h("div",{class:"bh"},[h("div",{class:"row",style:"flex:none;align-items:center;gap:14px"},head),ctrls(arr,i)]),grid]);
 }
 
 /* ======== Screens ======== */
@@ -277,17 +328,22 @@ function renderEditor(){
   function add(b){ (w.blocks=w.blocks||[]).push(b); mark(); renderEditor(); setTimeout(function(){ window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}); },50); }
   var multi=h("input",{type:"file",multiple:true,accept:"image/*,video/mp4,video/webm,video/quicktime",style:"display:none",on:{change:function(){
     var files=[].slice.call(multi.files); multi.value=""; if(!files.length) return; toast("Đang xử lý "+files.length+" file…",60000);
-    files.reduce(function(p,f){ return p.then(function(){ return processFile(f,slug(w.title)).then(function(path){ (w.blocks=w.blocks||[]).push({type:"media",src:path}); }); }); },Promise.resolve())
+    files.reduce(function(p,f){ return p.then(function(){ return processFile(f,slug(w.title)).then(function(path){ (w.blocks=w.blocks||[]).push({type:"layout",layout:"full",items:[path]}); }); }); },Promise.resolve())
       .then(function(){ mark(); renderEditor(); toast("Đã thêm "+files.length+" khối."); })
       .catch(function(e){ toast(e.message,5000); renderEditor(); });
   }}});
+  var MINI={"full":'<div class="mini" style="grid-template-columns:1fr"><i></i></div>',
+    "half-45-169":'<div class="mini" style="grid-template-columns:1fr 1fr;align-items:start"><i style="height:54px"></i><i style="height:30px"></i></div>',
+    "half-45":'<div class="mini" style="grid-template-columns:1fr 1fr"><i></i><i></i></div>',
+    "bento":'<div class="mini" style="grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr"><i style="grid-row:span 2"></i><i></i><i></i></div>',
+    "three-46":'<div class="mini" style="grid-template-columns:1fr 1fr 1fr"><i></i><i></i><i></i></div>'};
   main.appendChild(h("section",{},[h("h2",{},["Ảnh / video bên dưới (xếp từ trên xuống)"]),
-    h("p",{class:"mut"},["Xuất ảnh hoặc video từ Figma rồi thả vào đây. Ảnh giữ nguyên tỉ lệ, tự nén WebP 1920px; video MP4/WebM tối đa 25MB."]),
+    h("p",{class:"mut"},["Chọn một layout rồi thả ảnh/video vào từng ô. Mỗi ô ghi sẵn kích thước nên xuất từ Figma; ảnh lệch tỉ lệ sẽ được cảnh báo và bị cắt cho vừa ô. Ảnh tự nén WebP, video MP4/WebM tối đa 25MB."]),
     blocks,multi,
+    h("div",{class:"lpick"},LAYOUTS.map(function(l){
+      return h("button",{on:{click:function(){ add({type:"layout",layout:l.id,items:l.slots.map(function(){ return ""; })}); }}},[h("div",{html:MINI[l.id]}),"+ "+l.name]); })),
     h("div",{class:"row",style:"flex-wrap:wrap;justify-content:flex-start"},[
-      h("button",{class:"shrink pri",on:{click:function(){ multi.click(); }}},["+ Ảnh / video (chọn được nhiều)"]),
-      h("button",{class:"shrink",on:{click:function(){ add({type:"row",items:["",""]}); }}},["+ Hàng 2 cột"]),
-      h("button",{class:"shrink",on:{click:function(){ add({type:"row",items:["","",""]}); }}},["+ Hàng 3 cột"]),
+      h("button",{class:"shrink",on:{click:function(){ multi.click(); }}},["+ Nhiều ảnh 16:9 cùng lúc"]),
       h("button",{class:"shrink",on:{click:function(){ add({type:"text",label:"",text:""}); }}},["+ Đoạn mô tả số"])])]));
 }
 

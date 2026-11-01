@@ -435,4 +435,17 @@ html.loading .media img{opacity:0}
 video{display:block}
 .b-media{position:relative;width:100%;overflow:hidden}
 .b-media > img,.b-media > video{display:block;width:100%;height:auto}
+.lay{display:grid;gap:2rem;align-items:start}
+.lay-2,.lay-bento{grid-template-columns:repeat(2,minmax(0,1fr))}
+.lay-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.lay-bento{align-items:stretch}
+.lay .cell{position:relative;overflow:hidden}
+.lay .cell > img,.lay .cell > video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.lay .stack{display:flex;flex-direction:column;gap:2rem}
+.lay .stack .cell{flex:1 1 0;min-height:0}
+@media (max-width:800px){
+  .lay,.lay-2,.lay-3,.lay-bento{grid-template-columns:minmax(0,1fr);gap:1.2rem}
+  .lay .stack{gap:1.2rem}
+  .lay .stack .cell{flex:none;aspect-ratio:16/9}
+}
 @media (max-width:800px){ .g-row{display:flex;flex-direction:column;gap:1.2rem} .g-row > *{width:100%} }

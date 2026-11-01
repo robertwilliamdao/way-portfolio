@@ -350,8 +350,21 @@
     });
     return h+'</div>';
   }
+  /* Layout presets from Figma ("Layout preset"): each slot has a fixed ratio and the image fills it */
+  function cellHTML(src,ar){ return '<div class="cell"'+(ar?' style="aspect-ratio:'+ar+'"':'')+'>'+(src?mediaTag(src,"",false):'')+'</div>'; }
+  function layoutHTML(bk){
+    var it=bk.items||[], sw=!!bk.swap, c;
+    switch(bk.layout){
+      case "half-45-169": c=[cellHTML(it[0],"4/5"),cellHTML(it[1],"16/9")]; if(sw) c.reverse(); return '<div class="lay lay-2">'+c.join("")+'</div>';
+      case "half-45": return '<div class="lay lay-2">'+cellHTML(it[0],"4/5")+cellHTML(it[1],"4/5")+'</div>';
+      case "bento": c=[cellHTML(it[0],"4/5"),'<div class="stack">'+cellHTML(it[1])+cellHTML(it[2])+'</div>']; if(sw) c.reverse(); return '<div class="lay lay-bento">'+c.join("")+'</div>';
+      case "three-46": return '<div class="lay lay-3">'+cellHTML(it[0],"2/3")+cellHTML(it[1],"2/3")+cellHTML(it[2],"2/3")+'</div>';
+      default: return '<div class="lay">'+cellHTML(it[0],"16/9")+'</div>';
+    }
+  }
   function plainMedia(src){ return src?'<div class="b-media">'+mediaTag(src,"",false)+'</div>':''; }
   function blockHTML(bk){
+    if(bk.type==="layout") return layoutHTML(bk);
     if(bk.type==="media"&&bk.src) return plainMedia(bk.src);
     if(bk.type==="row"&&bk.items) return '<div class="g-row b-row" style="grid-template-columns:repeat('+bk.items.length+',minmax(0,1fr))">'+bk.items.map(function(x){ return x?plainMedia(x):'<div></div>'; }).join("")+'</div>';
     if(bk.type==="text") return '<div class="p-grid p-numbered"><span class="p-num" aria-hidden="true"></span><div class="p-desc p-r"><span class="k">'+esc(bk.label)+'</span><p>'+esc(bk.text)+'</p></div></div>';

@@ -1,6 +1,107 @@
 /* Edited by the builder (admin/). Every work: card info, detail info, and a list of layout blocks. */
 window.WORKS = [
   {
+    "id": "hq-design",
+    "title": "HQ.Design",
+    "type": "Architect",
+    "services": [
+      "Branding",
+      "Presentation"
+    ],
+    "summary": "A warm, editorial identity and presentation for HQ.Design, an interior studio for premium commercial spaces. The brand mirrors the craft of the studio’s work, giving it a calm, confident presence that helps win the right clients.",
+    "cover": "assets/works/hq-design-mvxmgalm-r.webp",
+    "view": "",
+    "client": "HQ.Design",
+    "role": "Lead Designer",
+    "year": "2025",
+    "descriptions": [
+      {
+        "label": "Overview",
+        "text": "HQ.Design is an interior studio creating premium commercial spaces, where every detail is considered and every material chosen with intent. The brand needed to carry that same sense of craft into how the studio presents itself."
+      },
+      {
+        "label": "Assignment",
+        "text": "Building a refined visual identity for HQ.Design as Lead Designer, then bringing it to life in a presentation that helps the studio win new clients."
+      },
+      {
+        "label": "Result",
+        "text": "A calm, editorial brand that feels as considered as the spaces HQ.Design builds, giving the studio a confident, premium voice in every client conversation."
+      }
+    ],
+    "blocks": [
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/hq-design-mvxmq2z8.mp4"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "Quiet confidence",
+        "text": "A restrained identity built on clean typography and a warm, earthy palette. It steps back to let the work speak, while still feeling distinctive and unmistakably HQ.Design."
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/hq-design-mvxmhybq-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "half-45-169",
+        "items": [
+          "assets/works/hq-design-mvxmi5j1-r.webp",
+          "assets/works/hq-design-mvxmi6zi-r.webp"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "Space, told as a story",
+        "text": "A presentation that reads more like a design magazine than a sales pitch. It takes prospective clients on a clear journey, from first impression to signed project, with the same care and rhythm as a well-designed space."
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/hq-design-mvxmmgd5-r.webp",
+          "assets/works/hq-design-mvxmmhon-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/hq-design-mvxmmmxz-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/hq-design-mvxmmrvf-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "three-46",
+        "items": [
+          "assets/works/hq-design-mvxmmvky-r.webp",
+          "assets/works/hq-design-mvxmmx3x-r.webp",
+          "assets/works/hq-design-mvxmmyac-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/hq-design-mvxmn1vz-r.webp"
+        ]
+      }
+    ]
+  },
+  {
     "id": "protocol-health",
     "title": "Protocol Health",
     "type": "Health",
@@ -139,107 +240,6 @@ window.WORKS = [
         "items": [
           "assets/works/protocol-health-mvxk2j5a-r.webp",
           "assets/works/protocol-health-mvxk2lku-r.webp"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "hq-design",
-    "title": "HQ.Design",
-    "type": "Architect",
-    "services": [
-      "Branding",
-      "Presentation"
-    ],
-    "summary": "A warm, editorial identity and presentation for HQ.Design, an interior studio for premium commercial spaces. The brand mirrors the craft of the studio’s work, giving it a calm, confident presence that helps win the right clients.",
-    "cover": "assets/works/hq-design-mvxmgalm-r.webp",
-    "view": "",
-    "client": "HQ.Design",
-    "role": "Lead Designer",
-    "year": "2025",
-    "descriptions": [
-      {
-        "label": "Overview",
-        "text": "HQ.Design is an interior studio creating premium commercial spaces, where every detail is considered and every material chosen with intent. The brand needed to carry that same sense of craft into how the studio presents itself."
-      },
-      {
-        "label": "Assignment",
-        "text": "Building a refined visual identity for HQ.Design as Lead Designer, then bringing it to life in a presentation that helps the studio win new clients."
-      },
-      {
-        "label": "Result",
-        "text": "A calm, editorial brand that feels as considered as the spaces HQ.Design builds, giving the studio a confident, premium voice in every client conversation."
-      }
-    ],
-    "blocks": [
-      {
-        "type": "layout",
-        "layout": "full",
-        "items": [
-          "assets/works/hq-design-mvxmq2z8.mp4"
-        ]
-      },
-      {
-        "type": "text",
-        "label": "Quiet confidence",
-        "text": "A restrained identity built on clean typography and a warm, earthy palette. It steps back to let the work speak, while still feeling distinctive and unmistakably HQ.Design."
-      },
-      {
-        "type": "layout",
-        "layout": "full",
-        "items": [
-          "assets/works/hq-design-mvxmhybq-r.webp"
-        ]
-      },
-      {
-        "type": "layout",
-        "layout": "half-45-169",
-        "items": [
-          "assets/works/hq-design-mvxmi5j1-r.webp",
-          "assets/works/hq-design-mvxmi6zi-r.webp"
-        ]
-      },
-      {
-        "type": "text",
-        "label": "Space, told as a story",
-        "text": "A presentation that reads more like a design magazine than a sales pitch. It takes prospective clients on a clear journey, from first impression to signed project, with the same care and rhythm as a well-designed space."
-      },
-      {
-        "type": "layout",
-        "layout": "half-45",
-        "items": [
-          "assets/works/hq-design-mvxmmgd5-r.webp",
-          "assets/works/hq-design-mvxmmhon-r.webp"
-        ]
-      },
-      {
-        "type": "layout",
-        "layout": "full",
-        "items": [
-          "assets/works/hq-design-mvxmmmxz-r.webp"
-        ]
-      },
-      {
-        "type": "layout",
-        "layout": "full",
-        "items": [
-          "assets/works/hq-design-mvxmmrvf-r.webp"
-        ]
-      },
-      {
-        "type": "layout",
-        "layout": "three-46",
-        "items": [
-          "assets/works/hq-design-mvxmmvky-r.webp",
-          "assets/works/hq-design-mvxmmx3x-r.webp",
-          "assets/works/hq-design-mvxmmyac-r.webp"
-        ]
-      },
-      {
-        "type": "layout",
-        "layout": "full",
-        "items": [
-          "assets/works/hq-design-mvxmn1vz-r.webp"
         ]
       }
     ]

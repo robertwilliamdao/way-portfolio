@@ -12,7 +12,7 @@ window.WORKS = [
       "Image Generation"
     ],
     "summary": "A calm, human visual world for a preventive health brand, turning complex health data into something warm, clear, and easy to trust.",
-    "cover": "assets/works/protocol-health-mvxj8vhi.webp",
+    "cover": "assets/works/protocol-health-mvxj8vhi-r.webp",
     "view": "",
     "client": "Protocol Heath",
     "role": "Lead designer",
@@ -36,7 +36,7 @@ window.WORKS = [
         "type": "layout",
         "layout": "half-45",
         "items": [
-          "assets/works/protocol-health-mvxj9u7s.webp",
+          "assets/works/protocol-health-mvxj9u7s-r.webp",
           "assets/works/protocol-health-mvxjhyjs.mp4"
         ]
       },
@@ -56,8 +56,8 @@ window.WORKS = [
         "type": "layout",
         "layout": "half-45",
         "items": [
-          "assets/works/protocol-health-mvxjkf66.webp",
-          "assets/works/protocol-health-mvxjkibq.webp"
+          "assets/works/protocol-health-mvxjkf66-r.webp",
+          "assets/works/protocol-health-mvxjkibq-r.webp"
         ]
       },
       {
@@ -84,8 +84,8 @@ window.WORKS = [
         "type": "layout",
         "layout": "half-45-169",
         "items": [
-          "assets/works/protocol-health-mvxjwlyn.webp",
-          "assets/works/protocol-health-mvxjwnj7.webp"
+          "assets/works/protocol-health-mvxjwlyn-r.webp",
+          "assets/works/protocol-health-mvxjwnj7-r.webp"
         ]
       },
       {
@@ -110,15 +110,15 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/protocol-health-mvxk1vec.webp"
+          "assets/works/protocol-health-mvxk1vec-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "half-45",
         "items": [
-          "assets/works/protocol-health-mvxk20hx.webp",
-          "assets/works/protocol-health-mvxk22lo.webp"
+          "assets/works/protocol-health-mvxk20hx-r.webp",
+          "assets/works/protocol-health-mvxk22lo-r.webp"
         ]
       },
       {
@@ -130,15 +130,15 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/protocol-health-mvxk2bso.webp"
+          "assets/works/protocol-health-mvxk2bso-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "half-45",
         "items": [
-          "assets/works/protocol-health-mvxk2j5a.webp",
-          "assets/works/protocol-health-mvxk2lku.webp"
+          "assets/works/protocol-health-mvxk2j5a-r.webp",
+          "assets/works/protocol-health-mvxk2lku-r.webp"
         ]
       }
     ]
@@ -152,7 +152,7 @@ window.WORKS = [
       "Presentation"
     ],
     "summary": "A warm, editorial identity and presentation for HQ.Design, an interior studio for premium commercial spaces. The brand mirrors the craft of the studio’s work, giving it a calm, confident presence that helps win the right clients.",
-    "cover": "assets/works/hq-design-mvxmgalm.webp",
+    "cover": "assets/works/hq-design-mvxmgalm-r.webp",
     "view": "",
     "client": "HQ.Design",
     "role": "Lead Designer",
@@ -188,15 +188,15 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/hq-design-mvxmhybq.webp"
+          "assets/works/hq-design-mvxmhybq-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "half-45-169",
         "items": [
-          "assets/works/hq-design-mvxmi5j1.webp",
-          "assets/works/hq-design-mvxmi6zi.webp"
+          "assets/works/hq-design-mvxmi5j1-r.webp",
+          "assets/works/hq-design-mvxmi6zi-r.webp"
         ]
       },
       {
@@ -208,38 +208,38 @@ window.WORKS = [
         "type": "layout",
         "layout": "half-45",
         "items": [
-          "assets/works/hq-design-mvxmmgd5.webp",
-          "assets/works/hq-design-mvxmmhon.webp"
+          "assets/works/hq-design-mvxmmgd5-r.webp",
+          "assets/works/hq-design-mvxmmhon-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/hq-design-mvxmmmxz.webp"
+          "assets/works/hq-design-mvxmmmxz-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/hq-design-mvxmmrvf.webp"
+          "assets/works/hq-design-mvxmmrvf-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "three-46",
         "items": [
-          "assets/works/hq-design-mvxmmvky.webp",
-          "assets/works/hq-design-mvxmmx3x.webp",
-          "assets/works/hq-design-mvxmmyac.webp"
+          "assets/works/hq-design-mvxmmvky-r.webp",
+          "assets/works/hq-design-mvxmmx3x-r.webp",
+          "assets/works/hq-design-mvxmmyac-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/hq-design-mvxmn1vz.webp"
+          "assets/works/hq-design-mvxmn1vz-r.webp"
         ]
       }
     ]
@@ -255,7 +255,7 @@ window.WORKS = [
       "Assets"
     ],
     "summary": "A complete brand rollout for Brightshore Capital, bringing one confident, credible visual language to presentations, reports, icons, social content, and editorial print.",
-    "cover": "assets/works/brightshore-capital-mw06dpx8.webp",
+    "cover": "assets/works/brightshore-capital-mw06dpx8-r.webp",
     "view": "",
     "client": "Brightshore Capital",
     "role": "Lead Designer",
@@ -279,7 +279,7 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/brightshore-capital-mw06jonl.webp"
+          "assets/works/brightshore-capital-mw06jonl-r.webp"
         ]
       },
       {
@@ -291,17 +291,17 @@ window.WORKS = [
         "type": "layout",
         "layout": "half-45",
         "items": [
-          "assets/works/brightshore-capital-mw06k5mo.webp",
-          "assets/works/brightshore-capital-mw06k82c.webp"
+          "assets/works/brightshore-capital-mw06k5mo-r.webp",
+          "assets/works/brightshore-capital-mw06k82c-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "three-46",
         "items": [
-          "assets/works/brightshore-capital-mw06ke0c.webp",
-          "assets/works/brightshore-capital-mw06kfzd.webp",
-          "assets/works/brightshore-capital-mw06khrr.webp"
+          "assets/works/brightshore-capital-mw06ke0c-r.webp",
+          "assets/works/brightshore-capital-mw06kfzd-r.webp",
+          "assets/works/brightshore-capital-mw06khrr-r.webp"
         ]
       },
       {
@@ -313,8 +313,8 @@ window.WORKS = [
         "type": "layout",
         "layout": "half-45",
         "items": [
-          "assets/works/brightshore-capital-mw06lkyq.webp",
-          "assets/works/brightshore-capital-mw06lohi.webp"
+          "assets/works/brightshore-capital-mw06lkyq-r.webp",
+          "assets/works/brightshore-capital-mw06lohi-r.webp"
         ]
       },
       {
@@ -326,7 +326,7 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/brightshore-capital-mw06m1tz.webp"
+          "assets/works/brightshore-capital-mw06m1tz-r.webp"
         ]
       },
       {
@@ -338,7 +338,7 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/brightshore-capital-mw06mbef.webp"
+          "assets/works/brightshore-capital-mw06mbef-r.webp"
         ]
       },
       {
@@ -350,15 +350,15 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/brightshore-capital-mw06mpaj.webp"
+          "assets/works/brightshore-capital-mw06mpaj-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "half-45",
         "items": [
-          "assets/works/brightshore-capital-mw06mvi8.webp",
-          "assets/works/brightshore-capital-mw06mx8x.webp"
+          "assets/works/brightshore-capital-mw06mvi8-r.webp",
+          "assets/works/brightshore-capital-mw06mx8x-r.webp"
         ]
       }
     ]
@@ -372,7 +372,7 @@ window.WORKS = [
       "Personal Project"
     ],
     "summary": "A self-initiated redesign of GHTK’s company presentation, blending bold impact with editorial calm to tell the story of a Vietnamese e-logistics leader with clarity and confidence.",
-    "cover": "assets/works/ghtk-mw0s3nck.webp",
+    "cover": "assets/works/ghtk-mw0s3nck-r.webp",
     "view": "",
     "client": "",
     "role": "Lead Designer",
@@ -396,7 +396,7 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/ghtk-mw0rztnd.webp"
+          "assets/works/ghtk-mw0rztnd-r.webp"
         ]
       },
       {
@@ -408,8 +408,8 @@ window.WORKS = [
         "type": "layout",
         "layout": "half-45-169",
         "items": [
-          "assets/works/ghtk-mw0s01d5.webp",
-          "assets/works/ghtk-mw0s03b0.webp"
+          "assets/works/ghtk-mw0s01d5-r.webp",
+          "assets/works/ghtk-mw0s03b0-r.webp"
         ]
       },
       {
@@ -421,23 +421,23 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/ghtk-mw0s097m.webp"
+          "assets/works/ghtk-mw0s097m-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "half-45",
         "items": [
-          "assets/works/ghtk-mw0s0dwq.webp",
-          "assets/works/ghtk-mw0s0gfy.webp"
+          "assets/works/ghtk-mw0s0dwq-r.webp",
+          "assets/works/ghtk-mw0s0gfy-r.webp"
         ]
       },
       {
         "type": "layout",
         "layout": "half-45",
         "items": [
-          "assets/works/ghtk-mw0s0nw6.webp",
-          "assets/works/ghtk-mw0s0pzx.webp"
+          "assets/works/ghtk-mw0s0nw6-r.webp",
+          "assets/works/ghtk-mw0s0pzx-r.webp"
         ]
       },
       {
@@ -449,7 +449,7 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/ghtk-mw0s0wbq.webp"
+          "assets/works/ghtk-mw0s0wbq-r.webp"
         ]
       },
       {

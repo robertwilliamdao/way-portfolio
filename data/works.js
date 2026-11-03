@@ -243,5 +243,124 @@ window.WORKS = [
         ]
       }
     ]
+  },
+  {
+    "id": "brightshore-capital",
+    "title": "Brightshore Capital",
+    "type": "B2B",
+    "services": [
+      "Presentation",
+      "Report",
+      "Social",
+      "Assets"
+    ],
+    "summary": "A complete brand rollout for Brightshore Capital, bringing one confident, credible visual language to presentations, reports, icons, social content, and editorial print.",
+    "cover": "assets/works/brightshore-capital-mw06dpx8.webp",
+    "view": "",
+    "client": "Brightshore Capital",
+    "role": "Lead Designer",
+    "year": "2026",
+    "descriptions": [
+      {
+        "label": "Overview",
+        "text": "Brightshore Capital is a real estate investment firm with a growing portfolio across the U.S. With a new identity in place, the firm needed every piece of communication to feel as solid and credible as the investments behind it."
+      },
+      {
+        "label": "Assignment",
+        "text": "Leading the design of Brightshore’s brand rollout, turning a fresh identity into a consistent system across presentations, reports, icons, social content, and editorial print."
+      },
+      {
+        "label": "Result",
+        "text": "A confident, cohesive brand presence that carries Brightshore’s credibility into every investor conversation, with a flexible system the team can keep building on."
+      }
+    ],
+    "blocks": [
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/brightshore-capital-mw06jonl.webp"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "Built for the room",
+        "text": "Investor presentations that feel clear, steady, and assured, guiding the audience through complex opportunities with a sense of calm authority."
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/brightshore-capital-mw06k5mo.webp",
+          "assets/works/brightshore-capital-mw06k82c.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "three-46",
+        "items": [
+          "assets/works/brightshore-capital-mw06ke0c.webp",
+          "assets/works/brightshore-capital-mw06kfzd.webp",
+          "assets/works/brightshore-capital-mw06khrr.webp"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "Clarity at scale",
+        "text": "A report template that brings order to dense information, making every update feel considered and easy to read, issue after issue."
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/brightshore-capital-mw06lkyq.webp",
+          "assets/works/brightshore-capital-mw06lohi.webp"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "A shared visual language",
+        "text": "A custom icon set that gives the brand its own quiet voice, helping ideas land at a glance wherever they appear."
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/brightshore-capital-mw06m1tz.webp"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "Steady presence, every day",
+        "text": "Social content that keeps Brightshore visible and consistent, sharing news and milestones with the same polish as its investor materials."
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/brightshore-capital-mw06mbef.webp"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "Built to endure",
+        "text": "Editorial pieces that tell the firm’s story with depth and confidence, giving Brightshore a voice that feels lasting rather than promotional."
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/brightshore-capital-mw06mpaj.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/brightshore-capital-mw06mvi8.webp",
+          "assets/works/brightshore-capital-mw06mx8x.webp"
+        ]
+      }
+    ]
   }
 ];

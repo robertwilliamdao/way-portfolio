@@ -375,8 +375,8 @@ window.WORKS = [
     "cover": "assets/works/ghtk-mw0s3nck.webp",
     "view": "",
     "client": "",
-    "role": "",
-    "year": "2026",
+    "role": "Lead Designer",
+    "year": "2025",
     "descriptions": [
       {
         "label": "Overview",

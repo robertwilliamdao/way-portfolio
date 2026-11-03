@@ -338,23 +338,12 @@
   function dim(a){ var c=theme.bgRGB; return "rgba("+c[0]+","+c[1]+","+c[2]+","+a+")"; }
 
   /* Decode the first cover into the hero slot ahead of time */
-  if(cardImgs[0]){ var warmHero=function(){ heroImg.decoding="async"; heroImg.src=cardImgs[0].currentSrc||cardImgs[0].src; if(heroImg.decode) heroImg.decode().catch(function(){}); };
-    if(cardImgs[0].complete) warmHero(); else cardImgs[0].addEventListener("load",warmHero,{once:true}); }
-  /* Videos in a work don't load or play during the slide-in; they start once the pop-up has landed, and only while on screen */
-  var vidIO=null;
-  function startVideos(){
-    var vids=[].slice.call(panel.querySelectorAll("video[data-lazyplay]")); if(!vids.length) return;
-    if(!("IntersectionObserver" in window)){ vids.forEach(function(v){ v.preload="auto"; v.play().catch(function(){}); }); return; }
-    vidIO=new IntersectionObserver(function(es){ es.forEach(function(en){ var v=en.target;
-      if(en.isIntersecting){ if(v.preload!=="auto") v.preload="auto"; var p=v.play(); if(p&&p.catch) p.catch(function(){}); } else v.pause(); }); },{root:overlay,rootMargin:"300px 0px"});
-    vids.forEach(function(v){ vidIO.observe(v); });
-  }
-  function stopVideos(){ if(vidIO){ vidIO.disconnect(); vidIO=null; } [].slice.call(panel.querySelectorAll("video")).forEach(function(v){ v.pause(); }); }
+  if(cardImgs[0]){ heroImg.decoding="async"; heroImg.src=cardImgs[0].src; if(heroImg.decode) heroImg.decode().catch(function(){}); }
 
   /* ---------- Work detail renderer (blocks from data/works.js) ---------- */
   function mediaTag(src,cls,eager,sizes){
     var a=esc(asset(src)), c=cls?' class="'+cls+'"':'';
-    if(isVideo(src)) return '<video'+c+' src="'+a+'" muted loop playsinline preload="none" data-lazyplay></video>';
+    if(isVideo(src)) return '<video'+c+' src="'+a+'" muted loop playsinline autoplay preload="metadata"></video>';
     return '<img'+c+' src="'+a+'"'+srcsetAttr(src,sizes)+' alt=""'+(eager?'':' loading="lazy"')+' decoding="async">';
   }
   function frameHTML(f){
@@ -448,7 +437,7 @@
       var mi=card.querySelector(".media img");
       heroImg.style.objectPosition=getComputedStyle(mi).objectPosition; if(heroImg.src!==(mi.currentSrc||mi.src)) heroImg.src=mi.currentSrc||mi.src; heroImg.style.opacity=1;
       document.getElementById("mBarTitle").textContent=card.querySelector(".ptitle").textContent;
-      mOpen(overlay,function(){ busy=false; startVideos(); });
+      mOpen(overlay,function(){ busy=false; });
       return;
     }
     busy=true; openCard=card;
@@ -467,7 +456,7 @@
     gsap.timeline({onComplete:function(){
         heroReady.then(function(){
           heroImg.style.opacity=1;
-          requestAnimationFrame(function(){ unpin(cimg); gsap.set(cimg,{opacity:0}); overlay.classList.remove("busy"); busy=false; startVideos(); });
+          requestAnimationFrame(function(){ unpin(cimg); gsap.set(cimg,{opacity:0}); overlay.classList.remove("busy"); busy=false; });
         });
       }})
       .to(overlay,{backgroundColor:dim(.8),duration:1,ease:"power2.out"},0)
@@ -476,7 +465,6 @@
   }
   function closeProject(){
     if(busy||!openCard) return;
-    stopVideos();
     if(overlay.classList.contains("m")){ busy=true; mClose(overlay,function(){ openCard=null; busy=false; }); return; }
     busy=true;
     hideClose();
@@ -651,7 +639,7 @@
   document.addEventListener("keydown",function(e){ if(e.key==="Escape"){ if(ddOpen) closeDD(); else closeContact(); } });
 
   /* Copy e-mail */
-  var cMail=document.getElementById("cMail"), mailTxt=cMail.dataset.email||cMail.textContent, mailT=null;
+  var cMail=document.getElementById("cMail"), mailTxt=cMail.textContent, mailT=null;
   function copyText(s){
     if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(s).catch(fallback);
     fallback(); return Promise.resolve();

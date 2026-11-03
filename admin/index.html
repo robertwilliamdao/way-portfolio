@@ -136,7 +136,10 @@ function migrate(w){
   return w;
 }
 function serialize(){ return "/* Edited by the builder (admin/). Every work: card info, detail info, and a list of layout blocks. */\nwindow.WORKS = "+JSON.stringify(works,function(k,v){ return k==="_idTouched"?undefined:v; },2)+";\n"; }
-function usedPaths(){ var s=JSON.stringify(works), out=[]; Object.keys(pending).forEach(function(p){ if(s.indexOf('"'+p+'"')>=0) out.push(p); }); return out; }
+function usedPaths(){ var s=JSON.stringify(works), out=[];
+  Object.keys(pending).forEach(function(p){ if(pending[p].variant) return; if(s.indexOf('"'+p+'"')>=0){ out.push(p);
+    if(/-r\.webp$/.test(p)){ var b=p.replace(/\.webp$/,""); [b+"-1280.webp",b+"-640.webp"].forEach(function(v){ if(pending[v]) out.push(v); }); } } });
+  return out; }
 function publish(){
   var paths=usedPaths(), btn=document.getElementById("pub"); btn.disabled=true;
   var head,baseTree;
@@ -158,6 +161,22 @@ function publish(){
 }
 
 /* ======== Media ======== */
+/* Every image is saved in 3 sizes: name-r.webp (≤1920), name-r-1280.webp, name-r-640.webp — the site picks the right one */
+function encode(bm,maxW){
+  var s=Math.min(1,maxW/Math.max(bm.width,bm.height)), c=document.createElement("canvas");
+  c.width=Math.round(bm.width*s); c.height=Math.round(bm.height*s); c.getContext("2d").drawImage(bm,0,0,c.width,c.height);
+  return new Promise(function(res){ c.toBlob(res,"image/webp",IMG_Q); });
+}
+function makeVariants(bm,path,fullBlob){
+  return Promise.all([fullBlob?Promise.resolve(fullBlob):encode(bm,MAX_IMG),encode(bm,1280),encode(bm,640)]).then(function(bl){
+    if(bl[0].size>MAX_FILE) throw new Error("Ảnh sau khi nén vẫn lớn hơn 25MB.");
+    var b=path.replace(/\.webp$/,"");
+    pending[path]={blob:bl[0],url:URL.createObjectURL(bl[0]),kind:"image"};
+    pending[b+"-1280.webp"]={blob:bl[1],url:URL.createObjectURL(bl[1]),kind:"image",variant:true};
+    pending[b+"-640.webp"]={blob:bl[2],url:URL.createObjectURL(bl[2]),kind:"image",variant:true};
+    return path;
+  });
+}
 function processFile(file,base){
   if(file.size>MAX_FILE&&!/^image\//.test(file.type)) return Promise.reject(new Error("File lớn hơn 25MB. Hãy nén video, hoặc đưa lên R2 rồi dán link."));
   var stamp=Date.now().toString(36);
@@ -166,14 +185,7 @@ function processFile(file,base){
     pending[path]={blob:file,url:URL.createObjectURL(file),kind:"video"}; return Promise.resolve(path);
   }
   if(!/^image\//.test(file.type)) return Promise.reject(new Error("Chỉ nhận ảnh hoặc video."));
-  return createImageBitmap(file).then(function(bm){
-    var s=Math.min(1,MAX_IMG/Math.max(bm.width,bm.height)), c=document.createElement("canvas");
-    c.width=Math.round(bm.width*s); c.height=Math.round(bm.height*s); c.getContext("2d").drawImage(bm,0,0,c.width,c.height);
-    return new Promise(function(res){ c.toBlob(res,"image/webp",IMG_Q); });
-  }).then(function(blob){
-    if(blob.size>MAX_FILE) throw new Error("Ảnh sau khi nén vẫn lớn hơn 25MB.");
-    var path=MEDIA_DIR+base+"-"+stamp+".webp"; pending[path]={blob:blob,url:URL.createObjectURL(blob),kind:"image"}; return path;
-  });
+  return createImageBitmap(file).then(function(bm){ return makeVariants(bm,MEDIA_DIR+base+"-"+stamp+"-r.webp"); });
 }
 /* A media picker bound to obj[key]. imagesOnly for covers. */
 function mediaSlot(obj,key,opts){
@@ -204,6 +216,35 @@ function mediaSlot(obj,key,opts){
     h("div",{class:"row"},[h("button",{class:"shrink",on:{click:function(){ file.click(); }}},[opts.imagesOnly?"Chọn ảnh":"Chọn ảnh / video"]),
       obj[key]&&!opts.required?h("button",{class:"ghost shrink",on:{click:function(){ if(Array.isArray(obj)) obj[key]=""; else delete obj[key]; paint(); mark(); }}},["Bỏ"]):null]),
     url,meta,path,file])]);
+}
+
+/* ======== Optimise images uploaded before sizes existed ======== */
+function allImagePaths(){
+  var set={};
+  function add(p){ if(p&&!/^https?:|^blob:|^data:/.test(p)&&!isVideo(p)&&/\.(webp|jpe?g|png)$/i.test(p)&&!/-r\.webp$/.test(p)) set[p]=1; }
+  works.forEach(function(w){ add(w.cover); (w.blocks||[]).forEach(function(b){ (b.items||[]).forEach(function(x){ add(typeof x==="string"?x:x&&x.src); }); add(b.src); add(b.bg); }); });
+  return Object.keys(set);
+}
+function optimiseOld(){
+  var list=allImagePaths();
+  if(!list.length){ toast("Tất cả ảnh đã được tối ưu."); return; }
+  if(!confirm("Tạo bản nhỏ cho "+list.length+" ảnh cũ để site tải nhanh hơn? Xong nhớ bấm “Đăng lên site”.")) return;
+  var done=0, map={};
+  toast("Đang tối ưu 0/"+list.length+"…",600000);
+  list.reduce(function(p,path){ return p.then(function(){
+    return fetch("../"+path+"?v="+Date.now()).then(function(r){ if(!r.ok) throw 0; return r.blob(); })
+      .then(function(blob){ return createImageBitmap(blob).then(function(bm){
+        var np=path.replace(/\.(webp|jpe?g|png)$/i,"-r.webp");
+        var keep=/\.webp$/i.test(path)&&bm.width<=MAX_IMG&&bm.height<=MAX_IMG?blob:null;   /* reuse the original bytes when possible */
+        return makeVariants(bm,np,keep).then(function(){ map[path]=np; });
+      }); })
+      .catch(function(){ /* skip files that can't be read */ })
+      .then(function(){ done++; toast("Đang tối ưu "+done+"/"+list.length+"…",600000); });
+  }); },Promise.resolve()).then(function(){
+    var txt=JSON.stringify(works); Object.keys(map).forEach(function(o){ txt=txt.split('"'+o+'"').join('"'+map[o]+'"'); });
+    works=JSON.parse(txt); mark(); renderList(); renderEditor();
+    toast("Đã tối ưu "+Object.keys(map).length+" ảnh. Bấm “Đăng lên site” để áp dụng.",6000);
+  });
 }
 
 /* ======== Field helpers ======== */
@@ -272,6 +313,7 @@ function renderApp(){
   app.appendChild(h("header",{},[h("h1",{},["Builder"]),h("span",{class:"st"},[""]),
     h("div",{class:"row",style:"flex:none"},[
       h("a",{href:"../",target:"_blank",style:"color:var(--mut);text-decoration:none;padding:6px"},["Mở site ↗"]),
+      h("button",{on:{click:optimiseOld},title:"Tạo bản nhỏ cho ảnh đã đăng trước đây"},["Tối ưu ảnh cũ"]),
       h("button",{on:{click:preview}},["Xem trước"]),
       h("button",{class:"pri",id:"pub",on:{click:publish}},["Đăng lên site"]),
       h("button",{class:"ghost",on:{click:function(){ if(dirty&&!confirm("Có thay đổi chưa đăng. Vẫn đăng xuất?")) return; localStorage.removeItem("way-gh-token"); token=""; renderLogin(); }}},["Đăng xuất"])])]));

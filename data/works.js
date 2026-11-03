@@ -362,5 +362,103 @@ window.WORKS = [
         ]
       }
     ]
+  },
+  {
+    "id": "ghtk",
+    "title": "GHTK",
+    "type": "Logistics",
+    "services": [
+      "Presentation",
+      "Personal Project"
+    ],
+    "summary": "A self-initiated redesign of GHTK’s company presentation, blending bold impact with editorial calm to tell the story of a Vietnamese e-logistics leader with clarity and confidence.",
+    "cover": "assets/works/ghtk-mw0s3nck.webp",
+    "view": "",
+    "client": "",
+    "role": "",
+    "year": "2026",
+    "descriptions": [
+      {
+        "label": "Overview",
+        "text": "GHTK is one of Vietnam’s leading e-logistics companies, moving millions of parcels across the country every day. This self-initiated redesign explores how a fast-growing local brand could tell its story with the clarity and confidence of a global player. It is a personal project, not affiliated with or commissioned by GHTK."
+      },
+      {
+        "label": "Assignment",
+        "text": "Reimagining GHTK’s company presentation from the ground up, from layout system and visual direction to the way its story and data are told."
+      },
+      {
+        "label": "Result",
+        "text": "A bold yet editorial presentation that turns a data-heavy logistics business into a story people want to follow, and a chance to sharpen a personal approach to narrative and information design."
+      }
+    ],
+    "blocks": [
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/ghtk-mw0rztnd.webp"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "Impact, with restraint",
+        "text": "A layout system designed to hit hard while keeping a calm, editorial feel. Bold moments stand out because everything around them is given room to breathe."
+      },
+      {
+        "type": "layout",
+        "layout": "half-45-169",
+        "items": [
+          "assets/works/ghtk-mw0s01d5.webp",
+          "assets/works/ghtk-mw0s03b0.webp"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "A story of scale",
+        "text": "A presentation that moves with purpose, from where GHTK began to where it’s heading. It balances big ambition with a grounded, human sense of everyday Vietnam."
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/ghtk-mw0s097m.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/ghtk-mw0s0dwq.webp",
+          "assets/works/ghtk-mw0s0gfy.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/ghtk-mw0s0nw6.webp",
+          "assets/works/ghtk-mw0s0pzx.webp"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "Numbers, made human",
+        "text": "Infographics that turn complex operations into simple, scannable moments, so the scale of the business is felt rather than just read."
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/ghtk-mw0s0wbq.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/ghtk-mw0s157s.mp4"
+        ]
+      }
+    ]
   }
 ];

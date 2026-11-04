@@ -122,6 +122,20 @@
   prof.addEventListener("mouseleave",function(){ swapFace(false); });
 
 
+  /* Canvas effects need the image's real pixel size. With srcset, naturalWidth is "density-corrected"
+     (e.g. a 1920px file shown in a 980px slot reports 980), which made the grid split and the loader
+     draw a zoomed-in crop. pxOf() keeps a plain copy of the exact file the card shows. */
+  function pxOf(img){
+    var u=img.currentSrc||img.src; if(!u) return null;
+    var p=img._px;
+    if(!p||p._u!==u){ p=new Image(); p._u=u; p.decoding="async"; p.src=u; img._px=p; }
+    return p.complete&&p.naturalWidth?p:null;
+  }
+  function pxReady(img){
+    var p=pxOf(img); if(p) return Promise.resolve(p);
+    p=img._px; if(!p) return Promise.resolve(null);
+    return (p.decode?p.decode():new Promise(function(r){ p.onload=r; })).then(function(){ return pxOf(img); },function(){ return null; });
+  }
   /* ---------- Project hover: grid split ---------- */
   var openCard=null, busy=false;
   var cards=gsap.utils.toArray(".project");
@@ -129,6 +143,7 @@
   cards.forEach(function(card){
     var media=card.querySelector(".media"), img=media.querySelector("img"),
         vp=media.querySelector(".vp"), grid=media.querySelector(".cells");
+    if(img.complete) pxOf(img); img.addEventListener("load",function(){ pxOf(img); geo=null; });
     var vx,vy;
 
     /* Grid split: drawn on one canvas, 12x7 tiles; each tile's image shifts/stretches near the cursor */
@@ -139,10 +154,11 @@
 
     function layout(){
       var cw=media.clientWidth, ch=media.clientHeight, dpr=Math.min(window.devicePixelRatio||1,2);
-      var nw=img.naturalWidth||cw, nh=img.naturalHeight||ch, s=Math.max(cw/nw,ch/nh), dw=nw*s, dh=nh*s;
+      var P=pxOf(img); if(!P){ geo=null; return false; }
+      var nw=P.naturalWidth, nh=P.naturalHeight, s=Math.max(cw/nw,ch/nh), dw=nw*s, dh=nh*s;
       var pos=(getComputedStyle(img).objectPosition||"50% 50%").split(" ");
       var px=parseFloat(pos[0])/100, py=parseFloat(pos[1]||"50%")/100;
-      geo={cw:cw,ch:ch,nw:nw,nh:nh,dw:dw,dh:dh,ox:(cw-dw)*px,oy:(ch-dh)*py};
+      geo={cw:cw,ch:ch,nw:nw,nh:nh,dw:dw,dh:dh,ox:(cw-dw)*px,oy:(ch-dh)*py,src:P};
       cv.width=Math.round(cw*dpr); cv.height=Math.round(ch*dpr); cv.style.width=cw+"px"; cv.style.height=ch+"px";
       T=[];
       for(var r=0;r<ROWS;r++){
@@ -169,7 +185,7 @@
         var qx=t.cx-(t.w/2+ddx)/sx, qy=t.cy-(t.h/2+ddy)/sy;
         qx=Math.min(geo.ox+geo.dw-qw,Math.max(geo.ox,qx));
         qy=Math.min(geo.oy+geo.dh-qh,Math.max(geo.oy,qy));
-        ctx.drawImage(img,(qx-geo.ox)*kx,(qy-geo.oy)*ky,qw*kx,qh*ky,t.X,t.Y,t.Wd,t.Hd);
+        ctx.drawImage(geo.src,(qx-geo.ox)*kx,(qy-geo.oy)*ky,qw*kx,qh*ky,t.X,t.Y,t.Wd,t.Hd);
       }
     }
     var scrChars=0;
@@ -225,7 +241,7 @@
       if(openCard||busy||isMobile()) return;
       reset();
       var p=local(e);
-      if(!geo||geo.cw!==media.clientWidth) layout();
+      if((!geo||geo.cw!==media.clientWidth||geo.src!==pxOf(img))&&layout()===false) return;
       roll(); mx=p.x; my=p.y; active=true;
       T.forEach(function(t){ if(Math.random()<.7) burst(t,rnd(.15,.6)); t.prevInf=1; });
       draw(); gsap.set(cv,{opacity:1}); gsap.set(img,{opacity:0});
@@ -343,7 +359,7 @@
   /* ---------- Work detail renderer (blocks from data/works.js) ---------- */
   function mediaTag(src,cls,eager,sizes){
     var a=esc(asset(src)), c=cls?' class="'+cls+'"':'';
-    if(isVideo(src)) return '<video'+c+' src="'+a+'" muted loop playsinline autoplay preload="metadata"></video>';
+    if(isVideo(src)) return '<video'+c+' src="'+a+'" muted loop playsinline '+VIDEO_ATTRS+'></video>';
     return '<img'+c+' src="'+a+'"'+srcsetAttr(src,sizes)+' alt=""'+(eager?'':' loading="lazy"')+' decoding="async">';
   }
   function frameHTML(f){
@@ -1010,7 +1026,7 @@
     cv.width=Math.round(box.width*dpr); cv.height=Math.round(box.height*dpr);
     cv.style.cssText="position:fixed;pointer-events:none;left:"+box.left+"px;top:"+box.top+"px;width:"+box.width+"px;height:"+box.height+"px;z-index:"+z;
     document.body.appendChild(cv);
-    var nw=im.naturalWidth, nh=im.naturalHeight, s=Math.max(box.width/nw,box.height/nh);
+    var P=pxOf(im)||im, nw=P.naturalWidth, nh=P.naturalHeight, s=Math.max(box.width/nw,box.height/nh);
     var pos=(getComputedStyle(im).objectPosition||"50% 50%").split(" "), px=parseFloat(pos[0])/100, py=parseFloat(pos[1]||"50%")/100;
     var vw=box.width/s, vh=box.height/s, ox=(nw-vw)*px, oy=(nh-vh)*py, tw=vw/COLS, th=vh/ROWS;
     var tiles=[];
@@ -1033,7 +1049,7 @@
           if(now>=tl.next){ tl.fx=Math.random()*(nw-tw); tl.fy=Math.random()*(nh-th); tl.next=now+60+Math.random()*50; }
           sx=tl.fx; sy=tl.fy;
         }
-        ctx.drawImage(im,sx,sy,tw,th,tl.X,tl.Y,tl.W,tl.H);
+        ctx.drawImage(P,sx,sy,tw,th,tl.X,tl.Y,tl.W,tl.H);
       }
       if(p<1) requestAnimationFrame(frame);
       else { gsap.set(im,{clipPath:"inset(0% 0% 0% 0%)"}); requestAnimationFrame(function(){ cv.remove(); }); }
@@ -1051,7 +1067,7 @@
     window.scrollTo(0,0); lock(); busy=true;
     gsap.set(sw,{autoAlpha:0});
     var imgs=cardImgs.slice(), N=imgs.length;
-    var decoded=Promise.all(imgs.map(function(im){ return im.decode?im.decode().catch(function(){}):null; }));
+    var decoded=Promise.all(imgs.map(function(im){ return im.decode?im.decode().catch(function(){}):null; })).then(function(){ return Promise.all(imgs.map(pxReady)); });
     Promise.race([decoded,new Promise(function(r){ setTimeout(r,6000); })]).then(function(){
       var b=box.getBoundingClientRect();
       imgs.forEach(function(im,i){

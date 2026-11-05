@@ -6,3 +6,12 @@
   Cache-Control: public, max-age=2592000
 /assets/logos/*
   Cache-Control: public, max-age=2592000
+
+# Code and data change often (deploys, builder publishes): the browser may keep a copy but must ask "is there a newer one?" each time
+# (a tiny 304 answer when nothing changed), so an update shows up right after the deploy instead of hours later.
+/assets/js/*
+  Cache-Control: no-cache
+/assets/css/*
+  Cache-Control: no-cache
+/data/*
+  Cache-Control: no-cache

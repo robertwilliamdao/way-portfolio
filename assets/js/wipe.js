@@ -9,11 +9,14 @@
   "use strict";
   var DARK="#101010", BEIGE="rgba(255,250,238,.92)", BAND=.4, F0=.04, FMAX=1+BAND, DUR=1.25;
   var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var play=null, root=null, warming=false, waiters=[], inPlay=false, busy=false, cvs=null, hist=false, pend=null, srcs={}, lite=false;   /* lite: switched on by itself when frames come out slow */
+  var VER=(function(){ var m=/[?&]v=([\w.-]+)/.exec((document.currentScript&&document.currentScript.src)||""); return m?"?v="+m[1]:""; })();   /* index.html bumps ?v= when these files change */
+  var play=null, root=null, warming=false, waiters=[], inPlay=false, busy=false, cvs=null, hist=false, pend=null, srcs={}, lite=false, liteNext=false;   /* lite: after a ring with slow frames, the NEXT ones are lighter (never switched mid-ring: that would pop) */
   function hash(n){ var x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); }
   function ease(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
   var css=document.createElement("style");   /* while in the Playground the home underneath is not painted; the home's grain is the one noise layer for the whole journey: always on top, never hidden */
-  css.textContent="html.in-play body>*:not(#wayPlay):not(canvas[data-way]):not(.grain){visibility:hidden}.grain{z-index:2147483001}";
+  css.textContent="html.in-play body>*:not(#wayPlay):not(canvas[data-way]):not(.grain){visibility:hidden}"+
+    ".grain{z-index:2147483001;left:-50vw;right:auto;width:200vw}"+          /* sized by the window, not by the scrollbar-less viewport: it does not shift when the page scroll is locked */
+    "#wayPlay::after{display:none!important}";                              /* the home's grain is the only noise here, even if an older play.css is still cached */
   document.head.appendChild(css);
   function lock(){ var sb=innerWidth-document.documentElement.clientWidth; document.documentElement.style.overflow="hidden"; document.body.style.paddingRight=sb+"px"; }
   function unlock(){ document.documentElement.style.overflow=""; document.body.style.paddingRight=""; }
@@ -61,8 +64,8 @@
       }
       prepSources(); var w=waiters; waiters=[]; w.forEach(function(f){ f(); });
     };
-    if(!document.getElementById("wayPlayCss")){ var l=document.createElement("link"); l.rel="stylesheet"; l.href="assets/css/play.css"; l.id="wayPlayCss"; document.head.appendChild(l); }
-    var list=[["data/play.js",function(){ return !!window.PLAY; }],["assets/js/play.js",function(){ return !!window.WayPlay; }]];
+    if(!document.getElementById("wayPlayCss")){ var l=document.createElement("link"); l.rel="stylesheet"; l.href="assets/css/play.css"+VER; l.id="wayPlayCss"; document.head.appendChild(l); }
+    var list=[["data/play.js?t="+Date.now(),function(){ return !!window.PLAY; }],["assets/js/play.js"+VER,function(){ return !!window.WayPlay; }]];   /* the shots are edited in the builder: always fetch the latest list */
     (function next(){
       var it=list.shift(); if(!it) return done();
       if(it[1]()) return next();
@@ -82,6 +85,7 @@
 
   /* ---------- the ring. dir "in": home → Playground. dir "out": Playground → home (same ring, reversed) ---------- */
   function run(dir,done){
+    if(liteNext){ lite=true; if(play) play.lite(true); }
     var imgs=collect(), W=innerWidth, H=innerHeight, dpr=play&&play.canvas?play.dpr():Math.min(devicePixelRatio||1,1.5), gc=play&&play.canvas;
     var cs=Math.max(34,Math.round(Math.hypot(W,H)/42)), cols=2*Math.ceil((W/cs-1)/2)+1, rows=2*Math.ceil((H/cs-1)/2)+1;   /* odd → a cell sits exactly at the centre */
     var ox=Math.round(W/2-cols*cs/2), oy=Math.round(H/2-rows*cs/2), R=Math.hypot(W/2,H/2)+cs*.5, n=cols*rows;
@@ -92,10 +96,9 @@
     }
     var homeAll=imgs.map(function(e){ return e.s; }), globeAll=(window.PLAY||[]).slice(0,8).map(function(d){ return srcs[thumbUrl(d)]; }).filter(function(s){ return s&&s.bm; });
     var cv=cvs=document.createElement("canvas"); cv.setAttribute("data-way","1"); cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
-    cv.style.cssText="position:fixed;inset:0;width:100%;height:100%;z-index:2147483000;display:block;touch-action:none";
+    cv.style.cssText="position:fixed;top:0;bottom:0;left:0;width:100vw;z-index:2147483000;display:block;touch-action:none";
     cv.addEventListener("wheel",function(e){ e.preventDefault(); },{passive:false}); cv.addEventListener("touchmove",function(e){ e.preventDefault(); },{passive:false});
     var ctx=cv.getContext("2d"); ctx.scale(dpr,dpr); document.body.appendChild(cv);
-    if(lite&&play) play.lite(true);
 
     function frag(k,x,y,tq,u){
       var r3=hash(k*1.9+tq*6.7), r4=hash(k*8.3+tq*4.1), r5=hash(k*2.1+tq*3.3), fromGlobe=hash(k*2.9+tq*5.3)<u*1.1-.05;   /* inner side of the ring → globe pieces */
@@ -146,7 +149,7 @@
     var t0=performance.now(), first=true, prev=t0, slow=0;
     (function tick(now){
       var t=Math.min(1,(now-t0)/(DUR*1000)), e=ease(t), f=dir==="in"?F0+e*(FMAX-F0):FMAX-e*(FMAX-F0);
-      if(!lite&&now>t0+120){ slow=(now-prev>45)?slow+1:Math.max(0,slow-1); if(slow>=6){ lite=true; if(play) play.lite(true); } }   /* under ~22fps: drop the fancy parts */
+      if(!liteNext&&now>t0+120){ slow=(now-prev>45)?slow+1:Math.max(0,slow-1); if(slow>=6) liteNext=true; }   /* under ~22fps: the next rings are lighter */
       prev=now;
       if(play) play.step(now,true);                     /* the ring drives the globe's frame, then copies it (no render-scale changes mid-ring) */
       paint(now,f);
@@ -162,10 +165,11 @@
     if(busy||inPlay) return; busy=true;
     if(!play){ warm(function(){ busy=false; if(play) enter(fromPop); else location.href="play.html"; }); return; }   /* not warmed yet (or failed): load it now */
     if(!fromPop) pushHist();
-    prepSources(); play.start();
+    prepSources(); play.start(); lock();   /* scrollbar gone before the ring: nothing changes size during it */
     var fin=function(){
-      root.classList.add("on"); lock(); document.documentElement.classList.add("in-play"); play.resume();
-      inPlay=true; busy=false; settle();
+      root.classList.add("on"); play.resume(); inPlay=true; busy=false;
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ if(inPlay&&!busy) document.documentElement.classList.add("in-play"); }); });   /* the heavy part (not painting the home any more) after the swap frame */
+      settle();
     };
     if(reduce) fin(); else run("in",fin);
   }

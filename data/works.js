@@ -551,5 +551,99 @@ window.WORKS = [
         ]
       }
     ]
+  },
+  {
+    "id": "front-yard",
+    "title": "Front Yard",
+    "type": "Agency",
+    "services": [
+      "Website",
+      "Illustration"
+    ],
+    "summary": "A playful, award-winning website for Front Yard, combining custom illustration and bold animation.",
+    "cover": "assets/works/front-yard-mw3c5vm3-r.webp",
+    "view": "",
+    "client": "Front Yard",
+    "role": "Lead Designer",
+    "year": "2025",
+    "descriptions": [
+      {
+        "label": "Overview",
+        "text": "Front Yard is a creative partner that helps brands get noticed, with a voice that’s bold, playful, and a little irreverent. Its own website had to live up to the one rule it sells: don’t be boring."
+      },
+      {
+        "label": "Assignment",
+        "text": "Leading the design and development of Front Yard’s website, and creating a custom illustration set that gives the brand its own personality."
+      },
+      {
+        "label": "Result",
+        "text": "A website that shows rather than tells what makes Front Yard different, balancing big character with clear purpose. It was recognised with Awwwards Honors and CSS Design Awards Website of the Day."
+      }
+    ],
+    "blocks": [
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/front-yard-mw3cfr1t.mp4"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/front-yard-mw3c9qeu-r.webp",
+          "assets/works/front-yard-mw3c9sww-r.webp"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "Personality, hand-drawn",
+        "text": "A custom illustration set that captures Front Yard’s fun, bold spirit. It feels loose and human, giving the brand a voice that’s instantly its own."
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/front-yard-mw3cjddb.mp4"
+        ]
+      },
+      {
+        "type": "text",
+        "label": "A story that moves",
+        "text": "A website that tells Front Yard’s story through illustration and bold, playful animation, turning every scroll into a moment of delight."
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/front-yard-mw3cakin-r.webp",
+          "assets/works/front-yard-mw3camjf-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/front-yard-mw3casx9-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "bento",
+        "items": [
+          "assets/works/front-yard-mw3cayl6-r.webp",
+          "assets/works/front-yard-mw3cb2ah-r.webp",
+          "assets/works/front-yard-mw3cb7da-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/front-yard-mw3cbcey-r.webp"
+        ]
+      }
+    ]
   }
 ];

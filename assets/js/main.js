@@ -359,7 +359,7 @@
   /* ---------- Work detail renderer (blocks from data/works.js) ---------- */
   function mediaTag(src,cls,eager,sizes){
     var a=esc(asset(src)), c=cls?' class="'+cls+'"':'';
-    if(isVideo(src)) return '<video'+c+' src="'+a+'" muted loop playsinline '+VIDEO_ATTRS+'></video>';
+    if(isVideo(src)) return '<video'+c+' src="'+a+'" muted loop playsinline autoplay preload="metadata"></video>';
     return '<img'+c+' src="'+a+'"'+srcsetAttr(src,sizes)+' alt=""'+(eager?'':' loading="lazy"')+' decoding="async">';
   }
   function frameHTML(f){

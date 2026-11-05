@@ -9,7 +9,7 @@ window.WORKS = [
       "Presentation"
     ],
     "summary": "A warm, editorial identity and presentation for HQ.Design, an interior studio for premium commercial spaces. The brand mirrors the craft of the studio’s work, giving it a calm, confident presence that helps win the right clients.",
-    "cover": "assets/works/hq-design-mvxmgalm-r.webp",
+    "cover": "assets/works/hq-design-mw2zk920-r.webp",
     "view": "",
     "client": "HQ.Design",
     "role": "Lead Designer",
@@ -45,7 +45,7 @@ window.WORKS = [
         "type": "layout",
         "layout": "full",
         "items": [
-          "assets/works/hq-design-mvxmhybq-r.webp"
+          "assets/works/hq-design-mw2zkoec-r.webp"
         ]
       },
       {

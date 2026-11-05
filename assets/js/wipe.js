@@ -12,8 +12,8 @@
   var play=null, root=null, warming=false, waiters=[], inPlay=false, busy=false, cvs=null, hist=false, pend=null, srcs={}, lite=false;   /* lite: switched on by itself when frames come out slow */
   function hash(n){ var x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); }
   function ease(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
-  var css=document.createElement("style");   /* while in the Playground the home underneath is not painted */
-  css.textContent="html.in-play body>*:not(#wayPlay):not(canvas[data-way]){visibility:hidden}";
+  var css=document.createElement("style");   /* while in the Playground the home underneath is not painted; the home's grain is the one noise layer for the whole journey: always on top, never hidden */
+  css.textContent="html.in-play body>*:not(#wayPlay):not(canvas[data-way]):not(.grain){visibility:hidden}.grain{z-index:2147483001}";
   document.head.appendChild(css);
   function lock(){ var sb=innerWidth-document.documentElement.clientWidth; document.documentElement.style.overflow="hidden"; document.body.style.paddingRight=sb+"px"; }
   function unlock(){ document.documentElement.style.overflow=""; document.body.style.paddingRight=""; }
@@ -95,7 +95,6 @@
     cv.style.cssText="position:fixed;inset:0;width:100%;height:100%;z-index:2147483000;display:block;touch-action:none";
     cv.addEventListener("wheel",function(e){ e.preventDefault(); },{passive:false}); cv.addEventListener("touchmove",function(e){ e.preventDefault(); },{passive:false});
     var ctx=cv.getContext("2d"); ctx.scale(dpr,dpr); document.body.appendChild(cv);
-    var grain=document.querySelector(".grain"); if(grain) grain.style.visibility="hidden";   /* the home's big moving grain layer is not worth compositing during the ring */
     if(lite&&play) play.lite(true);
 
     function frag(k,x,y,tq,u){
@@ -153,7 +152,7 @@
       paint(now,f);
       if(first){ first=false; if(dir==="out") root.classList.remove("on"); }   /* the ring now shows the whole globe: swap the live canvas out */
       if(t<1) requestAnimationFrame(tick);
-      else { if(dir==="in"&&play) play.step(performance.now(),true); cv.remove(); if(cvs===cv) cvs=null; if(grain) grain.style.visibility=""; done(); }
+      else { if(dir==="in"&&play) play.step(performance.now(),true); cv.remove(); if(cvs===cv) cvs=null; done(); }
     })(t0);
   }
 

@@ -315,7 +315,7 @@
     addEventListener("keydown",function(e){ if(e.key==="Escape") closeLb(); });
 
     api.lite=function(v){ lite=!!v; }; api.canvas=cv; api.start=start; api.step=step; api.resume=resume; api.pause=pause; api.dpr=function(){ return dpr; };
-    if(opt.standalone){ root.classList.add("on"); resume(); }
+    if(opt.standalone){ root.classList.add("on","solo"); resume(); }
     return api;
   }
   window.WayPlay={mount:mount};

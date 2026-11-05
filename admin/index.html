@@ -79,6 +79,10 @@ section > h2 button{font-size:14px}
 .mut{color:var(--mut);font-size:12px}
 .login{max-width:420px;margin:12vh auto;display:flex;flex-direction:column;gap:14px;padding:20px}
 .login h1{font-size:32px;font-weight:500;line-height:1}
+.qback{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.qbox{background:var(--card);border:.5px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px;width:min(520px,100%);max-height:94vh;overflow:auto}
+.qprev{background:#111;display:flex;justify-content:center}.qprev img{max-width:100%;max-height:40vh;display:block}
+.qbox label{display:flex;flex-direction:column;gap:6px}.qsize{font-size:14px}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:100px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.on{opacity:1}
 .empty{color:var(--mut);padding:40px 0}
@@ -94,6 +98,7 @@ section > h2 button{font-size:14px}
 var REPO={owner:"robertwilliamdao",repo:"way-portfolio",branch:"main"};
 var DATA_PATH="data/works.js", MEDIA_DIR="assets/works/";
 var MAX_IMG=1920, IMG_Q=.82, MAX_FILE=25*1024*1024;
+var SUGGEST_Q=.78, SUGGEST_Q_HEAVY=.7, HEAVY_BYTES=400*1024;   /* default for new uploads; lower if the 1920px file is still > 400KB (grainy images) */
 var API="https://api.github.com/repos/"+REPO.owner+"/"+REPO.repo;
 
 /* ======== State ======== */
@@ -163,16 +168,27 @@ function publish(){
 
 /* ======== Media ======== */
 /* Every image is saved in 3 sizes: name-r.webp (≤1920), name-r-1280.webp, name-r-640.webp — the site picks the right one */
-function encode(bm,maxW){
+function encode(bm,maxW,q){
   var s=Math.min(1,maxW/Math.max(bm.width,bm.height)), c=document.createElement("canvas");
   c.width=Math.round(bm.width*s); c.height=Math.round(bm.height*s); c.getContext("2d").drawImage(bm,0,0,c.width,c.height);
-  return new Promise(function(res){ c.toBlob(res,"image/webp",IMG_Q); });
+  return new Promise(function(res){ c.toBlob(res,"image/webp",q==null?IMG_Q:q); });
 }
-function makeVariants(bm,path,fullBlob){
-  return Promise.all([fullBlob?Promise.resolve(fullBlob):encode(bm,MAX_IMG),encode(bm,1280),encode(bm,640)]).then(function(bl){
+/* opts: {q, maxW} quality / max size for all 3 variants; {auto:true} picks the suggested quality; {keep:true} remembers the source so the picture can be re-tuned */
+function makeVariants(bm,path,fullBlob,opts){
+  opts=opts||{}; var maxW=opts.maxW||MAX_IMG, q=opts.q;
+  var first=fullBlob?Promise.resolve(fullBlob):encode(bm,maxW,opts.auto?SUGGEST_Q:q);
+  return first.then(function(b0){
+    if(opts.auto&&b0.size>HEAVY_BYTES){ q=SUGGEST_Q_HEAVY; return encode(bm,maxW,q); }
+    if(opts.auto) q=SUGGEST_Q;
+    return b0;
+  }).then(function(b0){
+    return Promise.all([encode(bm,Math.min(1280,maxW),q),encode(bm,Math.min(640,maxW),q)]).then(function(r){ return [b0,r[0],r[1]]; });
+  }).then(function(bl){
     if(bl[0].size>MAX_FILE) throw new Error("Ảnh sau khi nén vẫn lớn hơn 25MB.");
-    var b=path.replace(/\.webp$/,"");
-    pending[path]={blob:bl[0],url:URL.createObjectURL(bl[0]),kind:"image"};
+    var b=path.replace(/\.webp$/,""), old=pending[path]||{};
+    [path,b+"-1280.webp",b+"-640.webp"].forEach(function(k){ if(pending[k]) URL.revokeObjectURL(pending[k].url); });
+    var meta=opts.keep?{bm:bm,q:q==null?IMG_Q:q,maxW:maxW,orig:opts.orig||old.orig||0}:{};
+    pending[path]=Object.assign({blob:bl[0],url:URL.createObjectURL(bl[0]),kind:"image"},meta);
     pending[b+"-1280.webp"]={blob:bl[1],url:URL.createObjectURL(bl[1]),kind:"image",variant:true};
     pending[b+"-640.webp"]={blob:bl[2],url:URL.createObjectURL(bl[2]),kind:"image",variant:true};
     return path;
@@ -186,13 +202,41 @@ function processFile(file,base){
     pending[path]={blob:file,url:URL.createObjectURL(file),kind:"video"}; return Promise.resolve(path);
   }
   if(!/^image\//.test(file.type)) return Promise.reject(new Error("Chỉ nhận ảnh hoặc video."));
-  return createImageBitmap(file).then(function(bm){ return makeVariants(bm,MEDIA_DIR+base+"-"+stamp+"-r.webp"); });
+  return createImageBitmap(file).then(function(bm){ return makeVariants(bm,MEDIA_DIR+base+"-"+stamp+"-r.webp",null,{auto:true,keep:true,orig:file.size}); });
+}
+/* ======== Per-image quality dialog (click an image you uploaded this session) ======== */
+function fmtKB(n){ return n>=1048576?(n/1048576).toFixed(2)+" MB":Math.round(n/1024)+" KB"; }
+function openQuality(path,done){
+  var P=pending[path]; if(!P||!P.bm) return;
+  var q=Math.round(P.q*100), maxW=P.maxW, timer=null, seq=0, cur=null;
+  var img=h("img",{alt:""}), sizeEl=h("div",{class:"qsize"}), qv=h("b",{},[q+"%"]);
+  var slider=h("input",{type:"range",min:40,max:95,step:1,value:q});
+  var sel2=h("select",{},[h("option",{value:1920},["Tối đa 1920px"]),h("option",{value:1280},["Tối đa 1280px"])]); sel2.value=String(maxW);
+  var ok=h("button",{},["Dùng mức này"]), cancel=h("button",{class:"ghost"},["Huỷ"]);
+  var bd=h("div",{class:"qback"},[h("div",{class:"qbox"},[
+    h("div",{class:"qprev"},[img]),
+    h("label",{},["Chất lượng WebP ",qv,slider]), h("label",{},["Kích thước",sel2]),
+    sizeEl, h("div",{class:"meta"},["Gợi ý: 78% (70% nếu ảnh nhiều grain). Dưới 60% có thể thấy vỡ hạt."]),
+    h("div",{class:"row"},[ok,cancel])])]);
+  function close(){ clearTimeout(timer); if(cur) URL.revokeObjectURL(cur); bd.remove(); }
+  function est(){ var my=++seq; sizeEl.textContent="Đang tính…";
+    encode(P.bm,+sel2.value,q/100).then(function(b){ if(my!==seq) return;
+      if(cur) URL.revokeObjectURL(cur); cur=URL.createObjectURL(b); img.src=cur;
+      sizeEl.textContent="WebP "+q+"%: "+fmtKB(b.size)+(P.orig?"  ·  file gốc: "+fmtKB(P.orig):"")+(b.size>HEAVY_BYTES?"  — hơi nặng":""); }); }
+  slider.addEventListener("input",function(){ q=+slider.value; qv.textContent=q+"%"; clearTimeout(timer); timer=setTimeout(est,150); });
+  sel2.addEventListener("change",est);
+  cancel.addEventListener("click",close);
+  bd.addEventListener("click",function(e){ if(e.target===bd) close(); });
+  ok.addEventListener("click",function(){ ok.disabled=true; toast("Đang nén…",60000);
+    makeVariants(P.bm,path,null,{q:q/100,maxW:+sel2.value,keep:true,orig:P.orig}).then(function(){ close(); mark(); toast("Đã áp dụng "+q+"%."); if(done) done(); })
+      .catch(function(e){ ok.disabled=false; toast(e.message,5000); }); });
+  document.body.appendChild(bd); est();
 }
 /* A media picker bound to obj[key]. imagesOnly for covers. */
 function mediaSlot(obj,key,opts){
   opts=opts||{};
   var th=h("div",{class:"thumb"+(opts.wide||opts.stack?" big":"")}), path=h("div",{class:"path"}), url=h("input",{placeholder:"…hoặc dán link https (R2, CDN)"});
-  var meta=h("div",{class:"meta"});
+  var meta=h("div",{class:"meta"}), qinfo=h("div",{class:"meta"});
   function check(w,hh){
     if(!w||!hh){ meta.textContent=""; return; }
     var msg=w+"×"+hh+" · "+ratioText(w,hh), warn=false;
@@ -201,6 +245,8 @@ function mediaSlot(obj,key,opts){
     meta.textContent=msg; meta.className="meta"+(warn?" warn":"");
   }
   function paint(){ var p=obj[key]; th.innerHTML=""; path.textContent=p||"Chưa có"; meta.textContent="";
+    var P=p&&pending[p]; qinfo.textContent=P&&P.bm?"WebP "+Math.round(P.q*100)+"% · "+fmtKB(P.blob.size)+" — bấm vào ảnh để chỉnh chất lượng":"";
+    th.style.cursor=P&&P.bm?"pointer":""; th.title=P&&P.bm?"Chỉnh chất lượng":"";
     if(p){ var el=isVideo(p)?h("video",{src:src(p),muted:true,loop:true,autoplay:true,playsinline:true}):h("img",{src:src(p),alt:""});
       if(opts.ratio) th.style.aspectRatio=String(opts.ratio);
       el.addEventListener(isVideo(p)?"loadedmetadata":"load",function(){ check(el.videoWidth||el.naturalWidth,el.videoHeight||el.naturalHeight); });
@@ -212,11 +258,12 @@ function mediaSlot(obj,key,opts){
     processFile(f,slug(works[sel]&&works[sel].title)).then(function(p){ obj[key]=p; paint(); mark(); toast(opts.imagesOnly?"Đã thêm ảnh.":"Đã thêm."); if(opts.after) opts.after(); })
       .catch(function(e){ toast(e.message,5000); }); file.value=""; }}});
   url.addEventListener("change",function(){ var v=url.value.trim(); if(!v) return; if(opts.imagesOnly&&isVideo(v)){ toast("Ảnh cover phải là ảnh."); return; } obj[key]=v; paint(); mark(); });
+  th.addEventListener("click",function(){ var P=pending[obj[key]]; if(P&&P.bm) openQuality(obj[key],paint); });
   paint();
   return h("div",{class:"slot"+(opts.stack?" stack":"")},[th,h("div",{class:"info"},[
     h("div",{class:"row"},[h("button",{class:"shrink",on:{click:function(){ file.click(); }}},[opts.imagesOnly?"Chọn ảnh":"Chọn ảnh / video"]),
       obj[key]&&!opts.required?h("button",{class:"ghost shrink",on:{click:function(){ if(Array.isArray(obj)) obj[key]=""; else delete obj[key]; paint(); mark(); }}},["Bỏ"]):null]),
-    url,meta,path,file])]);
+    url,meta,qinfo,path,file])]);
 }
 
 /* ======== Optimise images uploaded before sizes existed ======== */

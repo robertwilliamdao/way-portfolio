@@ -1,0 +1,25 @@
+/* Play around — mỗi item: src (ảnh -r.webp; site tự dùng bản 640/1280), title, note. Sửa tay file này. */
+window.PLAY = [
+  {src:"assets/works/hq-design-mvxmgalm-r.webp",title:"Shot 01",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/hq-design-mvxmn1vz-r.webp",title:"Shot 02",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/ghtk-mw0rztnd-r.webp",title:"Shot 03",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/hq-design-mvxmmrvf-r.webp",title:"Shot 04",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/brightshore-capital-mw06mbef-r.webp",title:"Shot 05",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/protocol-health-mvxk2j5a-r.webp",title:"Shot 06",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/brightshore-capital-mw06mpaj-r.webp",title:"Shot 07",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/ghtk-mw0s03b0-r.webp",title:"Shot 08",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/hq-design-mvxmmgd5-r.webp",title:"Shot 09",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/hq-design-mvxmmhon-r.webp",title:"Shot 10",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/protocol-health-mvxjwlyn-r.webp",title:"Shot 11",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/protocol-health-mvxj8vhi-r.webp",title:"Shot 12",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/hq-design-mvxmmmxz-r.webp",title:"Shot 13",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/brightshore-capital-mw06lohi-r.webp",title:"Shot 14",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/brightshore-capital-mw06dpx8-r.webp",title:"Shot 15",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/protocol-health-mvxk22lo-r.webp",title:"Shot 16",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/ghtk-mw0s0gfy-r.webp",title:"Shot 17",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/brightshore-capital-mw06mvi8-r.webp",title:"Shot 18",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/ghtk-mw0s0pzx-r.webp",title:"Shot 19",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/protocol-health-mvxjwnj7-r.webp",title:"Shot 20",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/protocol-health-mvxk2bso-r.webp",title:"Shot 21",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."},
+  {src:"assets/works/ghtk-mw0s0wbq-r.webp",title:"Shot 22",note:"Ghi chú ngắn về ý tưởng / thử nghiệm này."}
+];

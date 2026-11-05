@@ -1,7 +1,7 @@
 /* Playground (assets/js/play.js). Everything lives under #wayPlay so it can sit on top of the home page. */
 @font-face{font-family:"Switzer";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Switzer-Medium.woff2) format("woff2")}
 @font-face{font-family:"Switzer";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Switzer-Regular.woff2) format("woff2")}
-#wayPlay{position:fixed;inset:0;z-index:2147482000;visibility:hidden;overflow:hidden;background:#101010;color:#fffaee;font:500 15px/1.3 "Switzer",system-ui,sans-serif;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+#wayPlay{position:fixed;top:0;bottom:0;left:0;width:100vw;z-index:2147482000;visibility:hidden;overflow:hidden;background:#101010;color:#fffaee;font:500 15px/1.3 "Switzer",system-ui,sans-serif;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 #wayPlay.on{visibility:visible}
 /* noise: on the home page the home's own .grain layer stays on top of everything; this one is only for play.html opened on its own */
 #wayPlay.solo::after{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;opacity:.022;background:url(../img/noise.png) repeat;background-size:14.55vw 14.55vw}

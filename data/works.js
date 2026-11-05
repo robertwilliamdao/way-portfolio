@@ -460,5 +460,96 @@ window.WORKS = [
         ]
       }
     ]
+  },
+  {
+    "id": "encentra",
+    "title": "Encentra",
+    "type": "Energy",
+    "services": [
+      "Website",
+      "Branding"
+    ],
+    "summary": "A fresh, editorial identity and website for Encentra, turning a complex energy offering into a brand that feels clear, optimistic, and easy to trust.",
+    "cover": "assets/works/encentra-mw31evoc-r.webp",
+    "view": "https://encentra.framer.website/",
+    "client": "Encentra",
+    "role": "Lead Designer",
+    "year": "2025",
+    "descriptions": [
+      {
+        "label": "Overview",
+        "text": "Encentra helps businesses lower energy costs and unlock new revenue through on-site wind power, storage, and EV charging. The brand needed to make a technical, policy-heavy space feel simple, open, and easy to trust."
+      },
+      {
+        "label": "Assignment",
+        "text": "Shaping Encentra’s visual identity as Lead Designer, then bringing it to life in a website designed and built to turn curiosity into real conversations."
+      },
+      {
+        "label": "Result",
+        "text": "A clean, optimistic brand that makes clean energy feel within reach, giving Encentra a confident presence that builds trust from the very first scroll."
+      }
+    ],
+    "blocks": [
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/encentra-mw31f88k-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/encentra-mw31fin2-r.webp",
+          "assets/works/encentra-mw31fpl8-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/encentra-mw31hfil-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/encentra-mw31hw76-r.webp",
+          "assets/works/encentra-mw31i3b6-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/encentra-mw31if11-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "half-45-169",
+        "items": [
+          "assets/works/encentra-mw31ism3-r.webp",
+          "assets/works/encentra-mw31iwxd-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "half-45",
+        "items": [
+          "assets/works/encentra-mw31j673-r.webp",
+          "assets/works/encentra-mw31j7v4-r.webp"
+        ]
+      },
+      {
+        "type": "layout",
+        "layout": "full",
+        "items": [
+          "assets/works/encentra-mw31jf8a-r.webp"
+        ]
+      }
+    ]
   }
 ];

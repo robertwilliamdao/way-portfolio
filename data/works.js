@@ -372,7 +372,7 @@ window.WORKS = [
       "Personal Project"
     ],
     "summary": "A self-initiated redesign of GHTK’s company presentation, blending bold impact with editorial calm to tell the story of a Vietnamese e-logistics leader with clarity and confidence.",
-    "cover": "assets/works/ghtk-mw0s3nck-r.webp",
+    "cover": "assets/works/ghtk-mw3cufo4-r.webp",
     "view": "",
     "client": "",
     "role": "Lead Designer",

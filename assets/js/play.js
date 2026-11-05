@@ -4,19 +4,22 @@
   if(!N) return;
   var A=N*100000, WW=Math.sqrt(A*1.45), WH=A/WW, W=innerWidth, H=innerHeight;   /* world sized so ~14 shots fill a 1512px screen, like the Figma mock */
   var K=function(){ return Math.max(.6,Math.min(1.4,W/1512)); }, BLANK="data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+  var AREA=22000, MAXE=250;
   var cam={x:0,y:0,z:1}, vx=0, vy=0, lbOpen=false;
   /* deterministic scatter: jittered grid over the wrapped world */
   var seed=11; function rnd(){ seed=(seed*16807)%2147483647; return seed/2147483647; }
   var cols=Math.ceil(Math.sqrt(N*WW/WH)), rows=Math.ceil(N/cols), cw=WW/cols, ch=WH/rows;
   var thumb=function(s){ return s.replace(/-r\.webp$/,"-r-640.webp"); }, big=function(s){ return s.replace(/-r\.webp$/,"-r-1280.webp"); };
   var items=DATA.map(function(d,i){
-    var ar=[1.28,1.46,1.79][Math.floor(rnd()*3)], h0=112, w=h0*ar, el=document.createElement("div"); el.className="it";
+    var ar=d.ar||[1.28,1.46,1.79][Math.floor(rnd()*3)], sz=fitBox(ar), w=sz[0], h0=sz[1], el=document.createElement("div"); el.className="it";
     var im=new Image(); if(d.src){ im.src=thumb(d.src); im.alt=d.title||""; im.decoding="async"; el.appendChild(im); } else el.className+=" ph";
     el.style.width=w+"px"; el.style.height=h0+"px"; stage.appendChild(el);
     var it={d:d,el:el,w:w,h:h0,x:(i%cols+.2+rnd()*.6)*cw,y:(Math.floor(i/cols)+.2+rnd()*.6)*ch};
-    im.onload=function(){ if(d.src&&im.naturalWidth){ it.h=w*im.naturalHeight/im.naturalWidth; el.style.height=it.h+"px"; kick(); } };
+    im.onload=function(){ if(d.src&&im.naturalWidth){ var q=fitBox(im.naturalWidth/im.naturalHeight); it.w=q[0]; it.h=q[1]; el.style.width=q[0]+"px"; el.style.height=q[1]+"px"; kick(); } };
     return it;
   });
+  /* Every shot keeps its own aspect ratio but gets the same AREA (so they look equally big), with the long edge capped for extreme ratios */
+  function fitBox(ar){ var w=Math.sqrt(AREA*ar), h=w/ar, m=Math.max(w,h); if(m>MAXE){ w*=MAXE/m; h*=MAXE/m; } return [Math.round(w),Math.round(h)]; }
   function wrap(v,s){ return ((v+s/2)%s+s)%s-s/2; }
   function render(){
     var R=W*.62, Ry=H*1.25, z=cam.z*K();

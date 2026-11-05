@@ -11,7 +11,8 @@
   "use strict";
   var TEMPLATE='<canvas class="wp-gl"></canvas>'+
     '<div class="wp-bar wp-top"><a href="index.html" class="wp-back">Back</a></div>'+
-    '<div class="wp-bar wp-bot"><span class="wp-hint">Kéo để xoay · Cuộn để zoom · Bấm vào shot để xem</span><span class="wp-cap">Play around</span>'+
+    '<div class="wp-info"><p class="wp-h"></p><p class="wp-p"></p></div>'+
+    '<div class="wp-bar wp-bot"><span class="wp-cap">Play around</span>'+
     '<div class="wp-zoom"><button class="wp-zo" aria-label="Zoom out">−</button><button class="wp-zi" aria-label="Zoom in">+</button></div></div>'+
     '<div class="wp-lb"><img class="wp-lbimg" alt=""><div class="wp-lbcap"><b></b><span></span></div></div>';
 
@@ -21,9 +22,15 @@
     if(!N) return null;
     root.innerHTML=TEMPLATE;
     var $=function(s){ return root.querySelector(s); };
-    var cv=$(".wp-gl"), cap=$(".wp-cap"), lb=$(".wp-lb"), lbImg=$(".wp-lbimg"), lbCap=$(".wp-lbcap");
+    var cv=$(".wp-gl"), info=$(".wp-info"), infoH=$(".wp-h"), infoP=$(".wp-p"), lb=$(".wp-lb"), lbImg=$(".wp-lbimg"), lbCap=$(".wp-lbcap");
     var thumbOf=function(s){ return s.replace(/-r\.webp$/,"-r-640.webp"); }, bigOf=function(s){ return s.replace(/-r\.webp$/,"-r-1280.webp"); };
-    var tUrl=function(d){ return d.thumb||thumbOf(d.src); }, bUrl=function(d){ return d.big||bigOf(d.src); };
+    var BLANK=(function(){ var c=document.createElement("canvas"); c.width=c.height=1; var x=c.getContext("2d"); x.fillStyle="#1e1e1e"; x.fillRect(0,0,1,1); return c.toDataURL(); })();   /* a shot without an image yet */
+    var tUrl=function(d){ return d.thumb||(d.src?thumbOf(d.src):BLANK); }, bUrl=function(d){ return d.big||(d.src?bigOf(d.src):BLANK); };
+    function setInfo(c){   /* headline + body of the hovered shot (desktop); it fades out but keeps its text while fading */
+      if(!c){ info.classList.remove("on"); return; }
+      var t=c.d.title||"", n=c.d.note||""; infoH.textContent=t; infoP.textContent=n; infoH.style.display=t?"":"none"; infoP.style.display=n?"":"none";
+      info.classList.toggle("on",!!(t||n));
+    }
     var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
     var BG=[16/255,16/255,16/255];
     var noop=function(){};
@@ -181,7 +188,7 @@
       Z+=(zt-Z)*(1-Math.exp(-dt*8));
       project();
       var h=(dragging||lbOpen)?null:hit(mouse.x,mouse.y);
-      if(h!==hovCard){ hovCard=h; cap.textContent=h?(h.d.title||""):"Play around"; cv.classList.toggle("hov",!!h); }
+      if(h!==hovCard){ hovCard=h; setInfo(h); cv.classList.toggle("hov",!!h); }
       cards.forEach(function(c){ c.hv+=((c===hovCard?1:0)-c.hv)*(1-Math.exp(-dt*12)); });
     }
 

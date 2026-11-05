@@ -49,6 +49,12 @@
     if(cb) waiters.push(cb);
     if(warming) return; warming=true;
     var done=function(){
+      if(/[?&]preview=1/.test(location.search)&&window.PLAY){   /* builder preview: unsaved shots + their unsaved images */
+        try{
+          var pv=JSON.parse(localStorage.getItem("way-preview")||"null"), m=(pv&&pv.map)||{};
+          if(pv&&pv.play){ window.PLAY=pv.play.filter(function(d){ return d.src; }); window.PLAY.forEach(function(d){ var p=d.src; d.thumb=m[p.replace(/-r\.webp$/,"-r-640.webp")]||m[p]||d.thumb; d.big=m[p.replace(/-r\.webp$/,"-r-1280.webp")]||m[p]||d.big; }); }
+        }catch(e){}
+      }
       if(window.WayPlay&&window.PLAY){
         root=document.getElementById("wayPlay"); if(!root){ root=document.createElement("div"); root.id="wayPlay"; document.body.appendChild(root); }
         play=window.WayPlay.mount(root,{onBack:back});
@@ -63,6 +69,16 @@
       var s=document.createElement("script"); s.src=it[0]; s.onload=next; s.onerror=done; document.head.appendChild(s);
     })();
   }
+
+  (function placeLink(){
+    var a=document.querySelector("a[data-wipe]"), mq=matchMedia("(max-width:800px)"); if(!a) return;
+    var home=document.createComment("playground-link"); a.parentNode.insertBefore(home,a);   /* marker: where the link lives on desktop */
+    function place(){
+      if(mq.matches){ var col=document.querySelector(".m-nav-col"); if(col) col.appendChild(a); }
+      else if(home.parentNode) home.parentNode.insertBefore(a,home.nextSibling);
+    }
+    place(); if(mq.addEventListener) mq.addEventListener("change",place); else mq.addListener(place);
+  })();
 
   /* ---------- the ring. dir "in": home → Playground. dir "out": Playground → home (same ring, reversed) ---------- */
   function run(dir,done){

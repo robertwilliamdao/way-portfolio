@@ -12,18 +12,21 @@
 #wayPlay .wp-bar a,#wayPlay .wp-bar button{pointer-events:auto;color:inherit;text-decoration:none;background:none;border:0;font:inherit;cursor:pointer;opacity:.6;transition:opacity .2s}
 #wayPlay .wp-bar a:hover,#wayPlay .wp-bar button:hover{opacity:1}
 #wayPlay .wp-top{top:0}
-#wayPlay .wp-bot{bottom:0;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
-#wayPlay .wp-bot>*{flex:1}
-#wayPlay .wp-hint{color:rgba(255,250,238,.45)}
-#wayPlay .wp-cap{text-align:center;opacity:.85}
-#wayPlay .wp-zoom{display:flex;gap:18px;justify-content:flex-end}
-@media (max-width:700px){#wayPlay .wp-hint{display:none}#wayPlay .wp-cap{text-align:left}}
+#wayPlay .wp-bot{bottom:0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+#wayPlay .wp-cap{display:none;opacity:.85}
+#wayPlay .wp-zoom{display:flex;gap:18px;margin-left:auto}
+/* Headline + body of the shot under the pointer: Switzer Medium 14 / 1.28 / -1.5%, centred, max 600px (Figma "Play around") */
+#wayPlay .wp-info{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:5;width:min(600px,calc(100% - 176px));display:flex;flex-direction:column;align-items:center;text-align:center;font-weight:500;font-size:14px;line-height:1.28;letter-spacing:-.21px;word-break:break-word;pointer-events:none;opacity:0;transition:opacity .3s}
+#wayPlay .wp-info.on{opacity:1}
+#wayPlay .wp-h{width:100%;color:#fffaee}
+#wayPlay .wp-p{width:100%;color:rgba(255,250,238,.4)}
+@media (hover:none){#wayPlay .wp-cap{display:block}#wayPlay .wp-info{display:none}}   /* touch: no hover, details are in the pop-up */
 #wayPlay .wp-fb{position:absolute;inset:0;overflow:auto;padding:64px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;align-content:start}
 #wayPlay .wp-fb img{width:100%;display:block}
 #wayPlay .wp-lb{position:absolute;inset:0;z-index:20;background:rgba(16,16,16,0);display:none;cursor:zoom-out;transition:background .5s}
 #wayPlay .wp-lb.on{display:block}#wayPlay .wp-lb.in{background:rgba(16,16,16,.9)}
 #wayPlay .wp-lbimg{position:absolute;left:0;top:0;transform-origin:0 0;object-fit:cover;background:#1e1e1e;transition:transform .6s cubic-bezier(.16,.84,.3,1),opacity .5s}
-#wayPlay .wp-lbcap{position:absolute;left:0;right:0;bottom:5vh;text-align:center;opacity:0;transition:opacity .4s;padding:0 24px}
-#wayPlay .wp-lbcap b{display:block;font-weight:500}#wayPlay .wp-lbcap span{color:rgba(255,250,238,.45)}
+#wayPlay .wp-lbcap{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(600px,calc(100% - 48px));text-align:center;font-size:14px;line-height:1.28;letter-spacing:-.21px;word-break:break-word;opacity:0;transition:opacity .4s}
+#wayPlay .wp-lbcap b{display:block;font-weight:500;color:#fffaee}#wayPlay .wp-lbcap span{display:block;color:rgba(255,250,238,.4)}
 #wayPlay .wp-lb.in .wp-lbcap{opacity:1;transition-delay:.3s}
 @media (prefers-reduced-motion:reduce){#wayPlay .wp-lbimg{transition-duration:.01s}}

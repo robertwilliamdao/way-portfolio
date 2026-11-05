@@ -494,7 +494,7 @@ function renderPlayEditor(main){
     s.ar?h("div",{class:"row"},[h("span",{class:"mut"},["Đang ép tỉ lệ "+s.ar+" (ảnh bị cắt cho vừa)."]),h("button",{class:"shrink",on:{click:function(){ delete s.ar; delete s.pos; mark(); renderEditor(); }}},["Dùng tỉ lệ gốc"])]):null,
     field("Headline",s,"title",{live:renderList,ph:"Tên shot"}),
     field("Body",s,"note",{area:true,rows:4,ph:"Mô tả ngắn về shot…"}),
-    h("p",{class:"mut"},["Headline và body hiện ở giữa phía dưới trang Playground khi rê chuột vào shot, và dưới ảnh khi bấm vào xem. Rộng tối đa 600px, chữ căn giữa. Để trống body thì chỉ hiện headline. Shot chưa có ảnh sẽ không được đăng."])]));
+    h("p",{class:"mut"},["Headline và body chỉ hiện khi bấm vào shot trong Playground: nằm giữa phía dưới ảnh, chữ chạy hiệu ứng scramble, rộng tối đa 600px, căn giữa. Rê chuột chưa hiện chữ. Để trống body thì chỉ hiện headline. Shot chưa có ảnh sẽ không được đăng."])]));
 }
 
 /* ======== Preview: the real site, with the unsaved data ======== */

@@ -11,7 +11,6 @@
   "use strict";
   var TEMPLATE='<canvas class="wp-gl"></canvas>'+
     '<div class="wp-bar wp-top"><a href="index.html" class="wp-back">Back</a></div>'+
-    '<div class="wp-info"><p class="wp-h"></p><p class="wp-p"></p></div>'+
     '<div class="wp-bar wp-bot"><span class="wp-cap">Play around</span>'+
     '<div class="wp-zoom"><button class="wp-zo" aria-label="Zoom out">−</button><button class="wp-zi" aria-label="Zoom in">+</button></div></div>'+
     '<div class="wp-lb"><img class="wp-lbimg" alt=""><div class="wp-lbcap"><b></b><span></span></div></div>';
@@ -22,15 +21,36 @@
     if(!N) return null;
     root.innerHTML=TEMPLATE;
     var $=function(s){ return root.querySelector(s); };
-    var cv=$(".wp-gl"), info=$(".wp-info"), infoH=$(".wp-h"), infoP=$(".wp-p"), lb=$(".wp-lb"), lbImg=$(".wp-lbimg"), lbCap=$(".wp-lbcap");
+    var cv=$(".wp-gl"), lb=$(".wp-lb"), lbImg=$(".wp-lbimg"), lbCap=$(".wp-lbcap"), lbH=$(".wp-lbcap>b"), lbP=$(".wp-lbcap>span");
     var thumbOf=function(s){ return s.replace(/-r\.webp$/,"-r-640.webp"); }, bigOf=function(s){ return s.replace(/-r\.webp$/,"-r-1280.webp"); };
     var BLANK=(function(){ var c=document.createElement("canvas"); c.width=c.height=1; var x=c.getContext("2d"); x.fillStyle="#1e1e1e"; x.fillRect(0,0,1,1); return c.toDataURL(); })();   /* a shot without an image yet */
     var tUrl=function(d){ return d.thumb||(d.src?thumbOf(d.src):BLANK); }, bUrl=function(d){ return d.big||(d.src?bigOf(d.src):BLANK); };
-    function setInfo(c){   /* headline + body of the hovered shot (desktop); it fades out but keeps its text while fading */
-      if(!c){ info.classList.remove("on"); return; }
-      var t=c.d.title||"", n=c.d.note||""; infoH.textContent=t; infoP.textContent=n; infoH.style.display=t?"":"none"; infoP.style.display=n?"":"none";
-      info.classList.toggle("on",!!(t||n));
+    /* Text scramble: every character keeps its final (invisible) glyph so the layout never moves; a copy is drawn on top from the
+       site's scramble set, and a front sweeps left to right turning noise into the real letters. */
+    var SCR="01/\\_+-.:", scrRaf={};
+    function hashN(n){ var x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); }
+    function scrambleTo(el,key,text,delay,dur){
+      cancelAnimationFrame(scrRaf[key]); el.textContent="";
+      if(!text){ el.style.display="none"; return; } el.style.display="";
+      if(reduce){ el.textContent=text; return; }
+      var chars=[], frag=document.createDocumentFragment();
+      for(var i=0;i<text.length;i++){
+        var ch=text.charAt(i), sp=document.createElement("span"); sp.textContent=ch;
+        if(!/\s/.test(ch)){ sp.className="wp-sc"; sp.setAttribute("data-s",""); chars.push({el:sp,c:ch,s:""}); }
+        frag.appendChild(sp);
+      }
+      el.appendChild(frag);
+      var n=chars.length, W=14, t0=performance.now()+delay*1000;
+      (function tick(now){
+        var t=Math.max(0,Math.min(1,(now-t0)/(dur*1000))), front=n*(1-Math.pow(1-t,2)), tq=Math.floor(now/55);
+        for(var k=0;k<n;k++){
+          var c=chars[k], v=k<front?c.c:(t>0&&k<front+W?SCR.charAt(Math.floor(hashN(k*3.1+tq*7.7)*SCR.length)):"");
+          if(c.s!==v){ c.s=v; c.el.setAttribute("data-s",v); }
+        }
+        if(t<1) scrRaf[key]=requestAnimationFrame(tick); else el.textContent=text;   /* done: plain text again */
+      })(performance.now());
     }
+    function clearText(){ cancelAnimationFrame(scrRaf.h); cancelAnimationFrame(scrRaf.p); lbH.textContent=""; lbP.textContent=""; }
     var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
     var BG=[16/255,16/255,16/255];
     var noop=function(){};
@@ -188,7 +208,7 @@
       Z+=(zt-Z)*(1-Math.exp(-dt*8));
       project();
       var h=(dragging||lbOpen)?null:hit(mouse.x,mouse.y);
-      if(h!==hovCard){ hovCard=h; setInfo(h); cv.classList.toggle("hov",!!h); }
+      if(h!==hovCard){ hovCard=h; cv.classList.toggle("hov",!!h); }
       cards.forEach(function(c){ c.hv+=((c===hovCard?1:0)-c.hv)*(1-Math.exp(-dt*12)); });
     }
 
@@ -274,14 +294,14 @@
     $(".wp-zi").onclick=function(){ touch(); zt=clampZ(zt*1.3); }; $(".wp-zo").onclick=function(){ touch(); zt=clampZ(zt/1.3); };
 
     /* ---------- pop-up: the shot flies from the globe to the centre and back ---------- */
-    function box(c){ var bw=Math.min(W*.88,H*.72*c.ar), bh=bw/c.ar; return {w:bw,h:bh,x:(W-bw)/2,y:(H-bh)/2-H*.03}; }
+    function box(c){ var bw=Math.min(W*.88,H*.70*c.ar), bh=bw/c.ar; return {w:bw,h:bh,x:(W-bw)/2,y:(H-bh)/2-H*.04}; }
     function fly(r,b){ return "translate("+r.x+"px,"+r.y+"px) scale("+(r.w/b.w)+","+(r.h/b.h)+")"; }
     function openLb(c){
       if(lbOpen) return; lbOpen=true; cur=c; c.hide=true; w.x=w.y=0; frozenAt=performance.now()+150;
       var r=c.rect, b=box(c), pos=c.d.pos||[.5,.5];
       lbImg.style.transition="none"; lbImg.src=tUrl(c.d); lbImg.style.objectPosition=(pos[0]*100)+"% "+(pos[1]*100)+"%";
       lbImg.style.width=b.w+"px"; lbImg.style.height=b.h+"px"; lbImg.style.opacity=c.fog; lbImg.style.transform=fly(r,b);
-      lbCap.querySelector("b").textContent=c.d.title||""; lbCap.querySelector("span").textContent=c.d.note||"";
+      scrambleTo(lbH,"h",c.d.title||"",.3,Math.min(.9,.25+(c.d.title||"").length*.03)); scrambleTo(lbP,"p",c.d.note||"",.38,Math.min(1.5,.4+(c.d.note||"").length*.006));
       lb.classList.add("on"); void lbImg.offsetWidth; lbImg.style.transition=""; lb.classList.add("in");
       lbImg.style.opacity=1; lbImg.style.transform="translate("+b.x+"px,"+b.y+"px) scale(1)";
       var hi=new Image(); hi.onload=function(){ if(cur===c) lbImg.src=hi.src; }; hi.src=bUrl(c.d);
@@ -289,7 +309,7 @@
     function closeLb(){
       if(!lbOpen||!cur) return; var c=cur, r=c.rect, b=box(c); lb.classList.remove("in");
       lbImg.style.opacity=c.fog; lbImg.style.transform=fly(r,b);
-      setTimeout(function(){ c.hide=false; lbOpen=false; cur=null; step(performance.now(),true); lb.classList.remove("on"); },600);   /* redraw first, then drop the pop-up: no empty gap */
+      setTimeout(function(){ c.hide=false; lbOpen=false; cur=null; clearText(); step(performance.now(),true); lb.classList.remove("on"); },600);   /* redraw first, then drop the pop-up: no empty gap */
     }
     lb.addEventListener("click",closeLb);
     addEventListener("keydown",function(e){ if(e.key==="Escape") closeLb(); });

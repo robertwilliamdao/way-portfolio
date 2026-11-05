@@ -46,7 +46,7 @@ window.PLAY = [
   {
     "title": "Indigo Limited",
     "note": "This is a concept cover for a personal project of mine, where I experimented with texture to achieve a dye ink feel.",
-    "src": "assets/play/indigo-slide-mw3orepb-r.webp"
+    "src": "assets/play/indigo-limited-mw3p7gw9-r.webp"
   },
   {
     "title": "Sola Loop",

@@ -3,7 +3,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Play around — Way</title>
 <meta name="description" content="Ý tưởng và những shot nghịch của Way.">
-<script>try{if(sessionStorage.getItem("way-wipe")==="1"){document.documentElement.className="entering";setTimeout(function(){document.documentElement.classList.remove("entering")},2500)}}catch(e){}</script>
 <style>
 @font-face{font-family:"Switzer";font-weight:500;font-display:swap;src:url(assets/fonts/Switzer-Medium.woff2) format("woff2")}
 @font-face{font-family:"Switzer";font-weight:400;font-display:swap;src:url(assets/fonts/Switzer-Regular.woff2) format("woff2")}
@@ -12,7 +11,6 @@
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:500 15px/1.3 "Switzer",system-ui,sans-serif;overscroll-behavior:none}
 body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:3;opacity:.07;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
-.entering #gl,.entering .bar{opacity:0}
 #gl.drag{cursor:grabbing}#gl.hov{cursor:pointer}
 .bar{position:fixed;left:0;right:0;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 24px;z-index:5;pointer-events:none}
 .bar a,.bar button{pointer-events:auto;color:var(--fg);text-decoration:none;background:none;border:0;font:inherit;cursor:pointer;opacity:.6;transition:opacity .2s}
@@ -30,13 +28,12 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:3;opac
 #lbCap b{display:block;font-weight:500}#lbCap span{color:var(--mut)}
 #lb.in #lbCap{opacity:1;transition-delay:.3s}
 @media (prefers-reduced-motion:reduce){#lbImg{transition-duration:.01s}}
-</style></head><body data-wipe-in>
+</style></head><body>
 <canvas id="gl"></canvas>
-<div class="bar top"><a href="index.html">← Way</a></div>
+<div class="bar top"><a href="index.html" id="back">Back</a></div>
 <div class="bar bot"><span class="hint">Kéo để xoay · Cuộn để zoom · Bấm vào shot để xem</span><span class="cap" id="cap">Play around</span>
   <div class="zoom"><button id="zo" aria-label="Zoom out">−</button><button id="zi" aria-label="Zoom in">+</button></div></div>
 <div id="lb"><img id="lbImg" alt=""><div id="lbCap"><b></b><span></span></div></div>
 <script src="data/play.js"></script>
-<script src="assets/js/wipe.js"></script>
 <script src="assets/js/play.js"></script>
 </body></html>

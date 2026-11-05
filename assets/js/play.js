@@ -241,5 +241,12 @@
   lb.addEventListener("click",closeLb);
   addEventListener("keydown",function(e){ if(e.key==="Escape") closeLb(); });
 
+  /* ---------- embedded in the home page (iframe): Back goes through the parent's reverse transition ---------- */
+  var EMBED=window.parent!==window;
+  $("back").addEventListener("click",function(e){ if(EMBED){ e.preventDefault(); parent.postMessage({way:"back"},"*"); } });
+  addEventListener("message",function(e){   /* parent re-opens the Playground: play the intro again */
+    if(e.data&&e.data.way==="start"){ var t=performance.now()/1000; cards.forEach(function(c,i){ c.born=t+i*.045; }); Z=.6; zt=1; }
+  });
+
   requestAnimationFrame(frame);
 })();

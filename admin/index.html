@@ -87,6 +87,8 @@ section > h2 button{font-size:14px}
 .toast.on{opacity:1}
 .empty{color:var(--mut);padding:40px 0}
 @media (max-width:800px){.wrap{grid-template-columns:1fr}aside{border-right:0;border-bottom:.5px solid var(--line)}.grid2{grid-template-columns:1fr}main{padding:16px}}
+.tabs{display:flex;gap:6px;margin-right:auto;margin-left:12px}
+button.tab.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 </style>
 </head>
 <body>
@@ -96,14 +98,14 @@ section > h2 button{font-size:14px}
 (function(){
 /* ======== Settings ======== */
 var REPO={owner:"robertwilliamdao",repo:"way-portfolio",branch:"main"};
-var DATA_PATH="data/works.js", MEDIA_DIR="assets/works/";
+var DATA_PATH="data/works.js", MEDIA_DIR="assets/works/", PLAY_PATH="data/play.js", PLAY_DIR="assets/play/";
 var MAX_IMG=1920, IMG_Q=.82, MAX_FILE=25*1024*1024;
 var SUGGEST_Q=.78, SUGGEST_Q_HEAVY=.7, HEAVY_BYTES=400*1024;   /* default for new uploads; lower if the 1920px file is still > 400KB (grainy images) */
 var API="https://api.github.com/repos/"+REPO.owner+"/"+REPO.repo;
 
 /* ======== State ======== */
 var token=localStorage.getItem("way-gh-token")||"";
-var works=[], sel=0, dirty=false, pending={};   /* pending: path -> {blob, url, kind} */
+var works=[], sel=0, play=[], psel=0, playOk=true, mode="works", dirty=false, pending={};   /* play = Playground shots; playOk=false if data/play.js could not be read (then it is never overwritten) */   /* pending: path -> {blob, url, kind} */
 var app=document.getElementById("app");
 
 /* ======== Helpers ======== */
@@ -124,9 +126,11 @@ function gh(path,opt){ opt=opt||{};
   return fetch(API+path,{method:opt.method||"GET",headers:{"Authorization":"Bearer "+token,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"},body:opt.body?JSON.stringify(opt.body):undefined})
     .then(function(r){ if(r.status===401) throw new Error("Mã truy cập sai hoặc đã hết hạn."); if(r.status===403||r.status===404) throw new Error("Mã không có quyền ghi vào repo way-portfolio."); if(!r.ok) throw new Error("GitHub báo lỗi "+r.status); return r.json(); }); }
 function load(){
-  return gh("/contents/"+DATA_PATH+"?ref="+REPO.branch).then(function(f){
-    var txt=b64ToText(f.content), i=txt.indexOf("["), j=txt.lastIndexOf("]");
+  return Promise.all([gh("/contents/"+DATA_PATH+"?ref="+REPO.branch),gh("/contents/"+PLAY_PATH+"?ref="+REPO.branch).catch(function(){ return null; })]).then(function(r){
+    var txt=b64ToText(r[0].content), i=txt.indexOf("["), j=txt.lastIndexOf("]");
     works=JSON.parse(txt.slice(i,j+1)).map(migrate); sel=0; dirty=false; pending={};
+    play=[]; psel=0; playOk=true;
+    if(r[1]){ try{ var t=b64ToText(r[1].content), k=t.indexOf("window.PLAY"), a=t.indexOf("[",k), z=t.lastIndexOf("]"); play=JSON.parse(t.slice(a,z+1)); }catch(e){ play=[]; playOk=false; } }
   });
 }
 /* Older data used frames/mockups; keep only the image or video each block shows */
@@ -142,7 +146,9 @@ function migrate(w){
   return w;
 }
 function serialize(){ return "/* Edited by the builder (admin/). Every work: card info, detail info, and a list of layout blocks. */\nwindow.WORKS = "+JSON.stringify(works,function(k,v){ return k==="_idTouched"?undefined:v; },2)+";\n"; }
-function usedPaths(){ var s=JSON.stringify(works), out=[];
+var PLAY_HEAD="/* Playground shots. Edited by the builder (admin/, tab Playground) or by hand.\n   title = headline, note = body: shown at the bottom of the Playground while the pointer is on a shot, and under the image when it is opened.\n   src = image ending in -r.webp (the site uses the -r-640 and -r-1280 copies the builder makes).\n   ar / pos are optional and force a crop (aspect ratio, focus point 0..1). Without them a shot keeps its own aspect ratio. */\nwindow.PLAY = ";
+function serializePlay(){ return PLAY_HEAD+JSON.stringify(play.filter(function(s){ return s.src; }),null,2)+";\n"; }   /* a shot without an image is not published */
+function usedPaths(){ var s=JSON.stringify(works)+JSON.stringify(play), out=[];
   Object.keys(pending).forEach(function(p){ if(pending[p].variant) return; if(s.indexOf('"'+p+'"')>=0){ out.push(p);
     if(/-r\.webp$/.test(p)){ var b=p.replace(/\.webp$/,""); [b+"-1280.webp",b+"-640.webp"].forEach(function(v){ if(pending[v]) out.push(v); }); } } });
   return out; }
@@ -158,8 +164,11 @@ function publish(){
     }); },Promise.resolve([]));
   }).then(function(tree){
     return gh("/git/blobs",{method:"POST",body:{content:textToB64(serialize()),encoding:"base64"}})
-      .then(function(b){ tree.push({path:DATA_PATH,mode:"100644",type:"blob",sha:b.sha}); return gh("/git/trees",{method:"POST",body:{base_tree:baseTree,tree:tree}}); });
-  }).then(function(t){ return gh("/git/commits",{method:"POST",body:{message:"Update works via builder",tree:t.sha,parents:[head]}}); })
+      .then(function(b){ tree.push({path:DATA_PATH,mode:"100644",type:"blob",sha:b.sha});
+        if(!playOk) return tree;
+        return gh("/git/blobs",{method:"POST",body:{content:textToB64(serializePlay()),encoding:"base64"}}).then(function(b2){ tree.push({path:PLAY_PATH,mode:"100644",type:"blob",sha:b2.sha}); return tree; }); })
+      .then(function(tr){ return gh("/git/trees",{method:"POST",body:{base_tree:baseTree,tree:tr}}); });
+  }).then(function(t){ return gh("/git/commits",{method:"POST",body:{message:"Update works & playground via builder",tree:t.sha,parents:[head]}}); })
   .then(function(c){ return gh("/git/refs/heads/"+REPO.branch,{method:"PATCH",body:{sha:c.sha}}); })
   .then(function(){ paths.forEach(function(p){ pending[p].published=true; }); dirty=false; renderHeader(); toast("Đã đăng. Site cập nhật sau khoảng 1 phút.",5000); })
   .catch(function(e){ toast("Không đăng được: "+e.message,6000); })
@@ -194,15 +203,15 @@ function makeVariants(bm,path,fullBlob,opts){
     return path;
   });
 }
-function processFile(file,base){
+function processFile(file,base,dir){
   if(file.size>MAX_FILE&&!/^image\//.test(file.type)) return Promise.reject(new Error("File lớn hơn 25MB. Hãy nén video, hoặc đưa lên R2 rồi dán link."));
   var stamp=Date.now().toString(36);
   if(/^video\//.test(file.type)){
-    var ext=(file.name.split(".").pop()||"mp4").toLowerCase(), path=MEDIA_DIR+base+"-"+stamp+"."+ext;
+    var ext=(file.name.split(".").pop()||"mp4").toLowerCase(), path=(dir||MEDIA_DIR)+base+"-"+stamp+"."+ext;
     pending[path]={blob:file,url:URL.createObjectURL(file),kind:"video"}; return Promise.resolve(path);
   }
   if(!/^image\//.test(file.type)) return Promise.reject(new Error("Chỉ nhận ảnh hoặc video."));
-  return createImageBitmap(file).then(function(bm){ return makeVariants(bm,MEDIA_DIR+base+"-"+stamp+"-r.webp",null,{auto:true,keep:true,orig:file.size}); });
+  return createImageBitmap(file).then(function(bm){ return makeVariants(bm,(dir||MEDIA_DIR)+base+"-"+stamp+"-r.webp",null,{auto:true,keep:true,orig:file.size}); });
 }
 /* ======== Per-image quality dialog (click an image you uploaded this session) ======== */
 function fmtKB(n){ return n>=1048576?(n/1048576).toFixed(2)+" MB":Math.round(n/1024)+" KB"; }
@@ -241,7 +250,7 @@ function mediaSlot(obj,key,opts){
     if(!w||!hh){ meta.textContent=""; return; }
     var msg=w+"×"+hh+" · "+ratioText(w,hh), warn=false;
     if(opts.ratio&&Math.abs((w/hh)/opts.ratio-1)>.04){ msg+=" — khác tỉ lệ ô ("+opts.ratioLabel+"), sẽ bị cắt bớt"; warn=true; }
-    else if(w<1000&&!isVideo(obj[key])){ msg+=" — ảnh hơi nhỏ, có thể mờ trên màn lớn"; warn=true; }
+    else if(!opts.quiet&&w<1000&&!isVideo(obj[key])){ msg+=" — ảnh hơi nhỏ, có thể mờ trên màn lớn"; warn=true; }
     meta.textContent=msg; meta.className="meta"+(warn?" warn":"");
   }
   function paint(){ var p=obj[key]; th.innerHTML=""; path.textContent=p||"Chưa có"; meta.textContent="";
@@ -255,7 +264,7 @@ function mediaSlot(obj,key,opts){
     url.value=/^https?:/.test(p||"")?p:""; }
   var file=h("input",{type:"file",accept:opts.imagesOnly?"image/*":"image/*,video/mp4,video/webm,video/quicktime",style:"display:none",on:{change:function(){
     var f=file.files[0]; if(!f) return; toast("Đang xử lý…",60000);
-    processFile(f,slug(works[sel]&&works[sel].title)).then(function(p){ obj[key]=p; paint(); mark(); toast(opts.imagesOnly?"Đã thêm ảnh.":"Đã thêm."); if(opts.after) opts.after(); })
+    processFile(f,opts.base?opts.base():slug(works[sel]&&works[sel].title),opts.dir).then(function(p){ obj[key]=p; paint(); mark(); toast(opts.imagesOnly?"Đã thêm ảnh.":"Đã thêm."); if(opts.after) opts.after(); })
       .catch(function(e){ toast(e.message,5000); }); file.value=""; }}});
   url.addEventListener("change",function(){ var v=url.value.trim(); if(!v) return; if(opts.imagesOnly&&isVideo(v)){ toast("Ảnh cover phải là ảnh."); return; } obj[key]=v; paint(); mark(); });
   th.addEventListener("click",function(){ var P=pending[obj[key]]; if(P&&P.bm) openQuality(obj[key],paint); });
@@ -358,7 +367,7 @@ function renderHeader(){
 }
 function renderApp(){
   app.innerHTML="";
-  app.appendChild(h("header",{},[h("h1",{},["Builder"]),h("span",{class:"st"},[""]),
+  app.appendChild(h("header",{},[h("h1",{},["Builder"]),h("div",{class:"tabs"},[tabBtn("Works","works"),tabBtn("Playground","play")]),h("span",{class:"st"},[""]),
     h("div",{class:"row",style:"flex:none"},[
       h("a",{href:"../",target:"_blank",style:"color:var(--mut);text-decoration:none;padding:6px"},["Mở site ↗"]),
       h("button",{on:{click:optimiseOld},title:"Tạo bản nhỏ cho ảnh đã đăng trước đây"},["Tối ưu ảnh cũ"]),
@@ -367,9 +376,12 @@ function renderApp(){
       h("button",{class:"ghost",on:{click:function(){ if(dirty&&!confirm("Có thay đổi chưa đăng. Vẫn đăng xuất?")) return; localStorage.removeItem("way-gh-token"); token=""; renderLogin(); }}},["Đăng xuất"])])]));
   var aside=h("aside"), main=h("main",{id:"ed"});
   app.appendChild(h("div",{class:"wrap"},[aside,main]));
+  app.appendChild(h("input",{id:"multiPlay",type:"file",multiple:true,accept:"image/*",style:"display:none",on:{change:addShots}}));
   renderList(); renderEditor(); renderHeader();
 }
+function tabBtn(label,m){ return h("button",{class:"tab"+(mode===m?" on":""),on:{click:function(){ if(mode===m) return; mode=m; renderApp(); }}},[label]); }
 function renderList(){
+  if(mode==="play"){ renderPlayList(); return; }
   var aside=document.querySelector("aside"); aside.innerHTML="";
   aside.appendChild(h("div",{class:"bh",style:"display:flex;justify-content:space-between;align-items:center"},[h("span",{class:"mut"},[works.length+" work · kéo để đổi thứ tự"]),
     h("button",{on:{click:function(){ works.push(blankWork()); sel=works.length-1; mark(); renderList(); renderEditor(); }}},["+ Work mới"])]));
@@ -388,6 +400,7 @@ function renderList(){
 function blankWork(){ return {id:"",title:"",type:"",services:[],summary:"",cover:"",view:"",client:"",role:"",year:String(new Date().getFullYear()),descriptions:[{label:"Overview",text:""}],blocks:[]}; }
 function renderEditor(){
   var main=document.getElementById("ed"); if(!main) return; main.innerHTML="";
+  if(mode==="play"){ renderPlayEditor(main); return; }
   var w=works[sel]; if(!w){ main.appendChild(h("p",{class:"empty"},["Chưa có work nào. Bấm “+ Work mới”."])); return; }
   var titleLive=function(){ if(!w._idTouched) w.id=slug(w.title); renderList(); };
   /* card */
@@ -437,11 +450,59 @@ function renderEditor(){
       h("button",{class:"shrink",on:{click:function(){ add({type:"text",label:"",text:""}); }}},["+ Đoạn mô tả số"])])]));
 }
 
+/* ======== Playground: shots (image + headline + body) ======== */
+function blankShot(){ return {title:"",note:"",src:""}; }
+function pthumb(s){ var p=s.src; if(!p) return ""; if(pending[p]) return pending[p].url; return /^https?:|^blob:|^data:/.test(p)?p:"../"+p.replace(/-r\.webp$/,"-r-640.webp"); }
+function addShots(e){
+  var inp=e.target, files=[].slice.call(inp.files); inp.value=""; if(!files.length) return;
+  toast("Đang xử lý "+files.length+" ảnh…",60000);
+  files.reduce(function(p,f){ return p.then(function(){
+    if(!/^image\//.test(f.type)) return Promise.reject(new Error("Playground chỉ nhận ảnh."));
+    return processFile(f,slug(f.name.replace(/\.[^.]+$/,""))||"shot",PLAY_DIR).then(function(path){ play.push({title:"",note:"",src:path}); });
+  }); },Promise.resolve())
+    .then(function(){ psel=play.length-1; mark(); renderList(); renderEditor(); toast("Đã thêm "+files.length+" shot. Bấm vào từng shot để viết headline và body."); })
+    .catch(function(err){ toast(err.message,5000); renderList(); renderEditor(); });
+}
+function renderPlayList(){
+  var aside=document.querySelector("aside"); aside.innerHTML="";
+  if(!playOk){ aside.appendChild(h("p",{class:"mut"},["Không đọc được data/play.js."])); return; }
+  aside.appendChild(h("div",{class:"bh",style:"display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap"},[h("span",{class:"mut"},[play.length+" shot · kéo để đổi thứ tự"]),
+    h("div",{class:"row",style:"flex:none;gap:6px"},[
+      h("button",{on:{click:function(){ play.push(blankShot()); psel=play.length-1; mark(); renderList(); renderEditor(); }}},["+ Shot"]),
+      h("button",{on:{click:function(){ document.getElementById("multiPlay").click(); }}},["+ Nhiều ảnh"])])]));
+  var dragI=null;
+  play.forEach(function(s,i){
+    var it=h("div",{class:"wi"+(i===psel?" on":""),draggable:"true",on:{
+      click:function(){ psel=i; renderList(); renderEditor(); },
+      dragstart:function(){ dragI=i; it.classList.add("drag"); },
+      dragend:function(){ it.classList.remove("drag"); },
+      dragover:function(e){ e.preventDefault(); },
+      drop:function(e){ e.preventDefault(); if(dragI===null||dragI===i) return; var m=play.splice(dragI,1)[0]; play.splice(i,0,m); psel=i; mark(); renderList(); renderEditor(); }}},
+      [h("span",{class:"h"},["⋮⋮"]),h("img",{src:pthumb(s),alt:""}),h("span",{class:"t"},[s.title||(s.src?"(chưa có headline)":"(chưa có ảnh)")])]);
+    aside.appendChild(it);
+  });
+}
+function renderPlayEditor(main){
+  if(!playOk){ main.appendChild(h("p",{class:"empty",style:"color:#ff8a7a"},["data/play.js hiện không đọc được (không phải JSON hợp lệ), nên builder sẽ không ghi đè nó. Nhờ Claude sửa lại file rồi tải lại trang."])); return; }
+  var s=play[psel]; if(!s){ main.appendChild(h("p",{class:"empty"},["Chưa có shot nào. Bấm “+ Shot” hoặc “+ Nhiều ảnh”."])); return; }
+  main.appendChild(h("section",{},[h("h2",{},["Shot",
+      h("div",{class:"row",style:"flex:none"},[
+        h("button",{on:{click:function(){ play.splice(psel+1,0,JSON.parse(JSON.stringify(s))); psel++; mark(); renderList(); renderEditor(); }}},["Nhân bản"]),
+        h("button",{on:{click:function(){ if(confirm("Xoá shot “"+(s.title||"")+"”?")){ play.splice(psel,1); psel=Math.max(0,psel-1); mark(); renderList(); renderEditor(); } }}},["Xoá shot"])])]),
+    h("div",{class:"mut"},["Ảnh của shot. Giữ đúng tỉ lệ ảnh bạn đăng (các shot lệch tỉ lệ vẫn được chuẩn hoá về cùng độ lớn). Tải lên xong, bấm vào ảnh để chỉnh chất lượng nén."]),
+    mediaSlot(s,"src",{imagesOnly:true,required:true,wide:true,quiet:true,dir:PLAY_DIR,base:function(){ return slug(s.title)||"shot"; },after:renderList}),
+    s.ar?h("div",{class:"row"},[h("span",{class:"mut"},["Đang ép tỉ lệ "+s.ar+" (ảnh bị cắt cho vừa)."]),h("button",{class:"shrink",on:{click:function(){ delete s.ar; delete s.pos; mark(); renderEditor(); }}},["Dùng tỉ lệ gốc"])]):null,
+    field("Headline",s,"title",{live:renderList,ph:"Tên shot"}),
+    field("Body",s,"note",{area:true,rows:4,ph:"Mô tả ngắn về shot…"}),
+    h("p",{class:"mut"},["Headline và body chỉ hiện khi bấm vào shot trong Playground: nằm giữa phía dưới ảnh, chữ chạy hiệu ứng scramble, rộng tối đa 600px, căn giữa. Rê chuột chưa hiện chữ. Để trống body thì chỉ hiện headline. Shot chưa có ảnh sẽ không được đăng."])]));
+}
+
 /* ======== Preview: the real site, with the unsaved data ======== */
 function preview(){
   var clean=JSON.parse(JSON.stringify(works,function(k,v){ return k==="_idTouched"?undefined:v; }));
   var map={}; Object.keys(pending).forEach(function(p){ map[p]=pending[p].url; });
-  try{ localStorage.setItem("way-preview",JSON.stringify({works:clean,map:map,t:Date.now()})); }catch(e){ toast("Dữ liệu quá lớn để xem trước."); return; }
+  var shots=play.filter(function(x){ return x.src; });
+  try{ localStorage.setItem("way-preview",JSON.stringify({works:clean,play:shots,map:map,t:Date.now()})); }catch(e){ toast("Dữ liệu quá lớn để xem trước."); return; }
   window.open("../?preview=1","way-preview");
 }
 

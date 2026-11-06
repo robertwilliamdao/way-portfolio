@@ -87,5 +87,10 @@ window.PLAY = [
     "title": "Chan Troi Anh Sao",
     "note": "This is the hero section of a website I designed for the “Chan De 2025” competition.",
     "src": "assets/play/work-mw4f7mnw-r.webp"
+  },
+  {
+    "title": "Direct Address",
+    "note": "A concept logo for Direct Address",
+    "src": "assets/play/work-mw4fc539-r.webp"
   }
 ];

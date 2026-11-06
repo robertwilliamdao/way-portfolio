@@ -1077,10 +1077,11 @@
       });
       document.documentElement.classList.remove("loading");
       /* Every work is shown, in two parts.
-         1) The works appear one after another in the middle (tile scramble). This part never exceeds CAP seconds: with many works the delay
-            between them (STEP) tightens, each scramble keeps its length. 2.5s is exactly what 6 works take at normal speed.
+         1) The works appear one after another in the middle (tile scramble). This part never exceeds CAP seconds. RAW is its length at normal
+            speed (it grows with the number of works); when that is more than CAP, all its timings shrink by the same factor s: same rhythm, just
+            faster. 6 works take 2.5s at normal speed, so they run at 60% to fit 1.5s.
          2) They fly to their cards. Its speed is fixed (FLY); only the delay between the flights tightens with many works. */
-      var CAP=2.5, PRE=.15, REVEAL=.6, STEP=N>1?Math.min(.35,(CAP-PRE-REVEAL)/(N-1)):.35;
+      var CAP=1.5, RAW=.15+Math.max(0,N-1)*.35+.6, s=Math.min(1,CAP/RAW), PRE=.15*s, STEP=.35*s, REVEAL=.6*s;
       var FLY=1.15, FLYGAP=.07*(N>1?Math.min(1,(4-2.1)/((N-1)*.42)):1);
       gsap.ticker.lagSmoothing(0);   /* a stalled frame must not stretch part 1: the clock catches up instead of slowing down (back to normal when the flight starts) */
       var tl=gsap.timeline({onComplete:function(){

@@ -27,7 +27,7 @@ _headers              cache dài cho assets/works, fonts
 
 ## Cách site chạy (main.js)
 - Card work được render từ `window.WORKS` lúc tải trang; pop-up chi tiết render khi mở (`renderDetail`).
-- Loader: ảnh các card hiện dạng tile scramble rồi bay về vị trí card (giới hạn 2.5s: nhiều work thì mọi mốc thời gian co lại cùng một hệ số; hằng `CAP` trong khối Loader của main.js).
+- Loader gồm 2 phần. (1) Ảnh các card hiện lần lượt dạng tile scramble ở giữa: giới hạn 2.5s (hằng `CAP` trong khối Loader của main.js; 6 work đúng 2.5s, nhiều work hơn thì khoảng cách giữa các ảnh co lại). (2) Rồi bay về vị trí card: tốc độ cố định (1.15s mỗi ảnh), không co theo `CAP`.
 - Hover card (desktop): hiệu ứng "grid split" vẽ trên canvas 12×7 ô.
 - Pop-up desktop: panel trượt từ dưới + ảnh cover bay vào slot hero. Mobile (≤800px): trượt từ phải, có nút more/less cố định ở góc phải trên.
 - Màu nền tuỳ chọn (nút Color) lưu localStorage `way-bg`.

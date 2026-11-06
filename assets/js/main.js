@@ -1076,11 +1076,15 @@
         gsap.set(im,fromRect(b,to)); gsap.set(im,{clipPath:"inset(100% 0% 0% 0%)",opacity:1});
       });
       document.documentElement.classList.remove("loading");
-      /* Every work is shown; the whole loader never exceeds CAP seconds. RAW is its length at normal speed (grows with the number of works);
-         when that is more than CAP, every timing below shrinks by the same factor s, so the rhythm stays the same, just faster */
-      var CAP=2.5, RAW=.15+.6+.2+1.15+(N-1)*(.35+.07), s=Math.min(1,CAP/RAW);
-      var PRE=.15*s, STEP=.35*s, FLYGAP=.07*s, REVEAL=.6*s, GAP=.2*s, FLY=1.15*s;
+      /* Every work is shown, in two parts.
+         1) The works appear one after another in the middle (tile scramble). This part never exceeds CAP seconds: with many works the delay
+            between them (STEP) tightens, each scramble keeps its length. 2.5s is exactly what 6 works take at normal speed.
+         2) They fly to their cards. Its speed is fixed (FLY); only the delay between the flights tightens with many works. */
+      var CAP=2.5, PRE=.15, REVEAL=.6, STEP=N>1?Math.min(.35,(CAP-PRE-REVEAL)/(N-1)):.35;
+      var FLY=1.15, FLYGAP=.07*(N>1?Math.min(1,(4-2.1)/((N-1)*.42)):1);
+      gsap.ticker.lagSmoothing(0);   /* a stalled frame must not stretch part 1: the clock catches up instead of slowing down (back to normal when the flight starts) */
       var tl=gsap.timeline({onComplete:function(){
+        gsap.ticker.lagSmoothing(500,33);
         imgs.forEach(function(im){ unpin(im); im.style.zIndex=""; gsap.set(im,{clearProps:"clipPath"}); });
         L.remove(); unlock(); busy=false; window.wayLoaderRunning=false;
         gsap.to(sw,{autoAlpha:1,duration:.4});
@@ -1092,9 +1096,10 @@
         tl.to({},{duration:REVEAL},PRE+i*STEP);
       });
       /* 2. All scale up and slide to where their cards sit; top of the stack leaves first */
-      tl.addLabel("fly","+="+GAP);
-      tl.add(startIntro,"fly+="+.35*s);
-      tl.to(bgL,{opacity:0,duration:.8*s,ease:"power2.inOut"},"fly+="+.15*s);
+      tl.addLabel("fly","+=.2");
+      tl.add(function(){ gsap.ticker.lagSmoothing(500,33); },"fly");
+      tl.add(startIntro,"fly+=.35");
+      tl.to(bgL,{opacity:0,duration:.8,ease:"power2.inOut"},"fly+=.15");
       for(var i=N-1;i>=0;i--){ tl.to(imgs[i],{x:0,y:0,scaleX:1,scaleY:1,duration:FLY,ease:"power4.inOut"},"fly+="+((N-1-i)*FLYGAP)); }
     });
   })();

@@ -213,10 +213,25 @@ function processFile(file,base,dir){
   if(!/^image\//.test(file.type)) return Promise.reject(new Error("Chỉ nhận ảnh hoặc video."));
   return createImageBitmap(file).then(function(bm){ return makeVariants(bm,(dir||MEDIA_DIR)+base+"-"+stamp+"-r.webp",null,{auto:true,keep:true,orig:file.size}); });
 }
-/* ======== Per-image quality dialog (click an image you uploaded this session) ======== */
+/* ======== Per-image quality dialog (click any image: one uploaded this session keeps its source, a published one is loaded from the site) ======== */
 function fmtKB(n){ return n>=1048576?(n/1048576).toFixed(2)+" MB":Math.round(n/1024)+" KB"; }
-function openQuality(path,done){
-  var P=pending[path]; if(!P||!P.bm) return;
+var loaded={};   /* published images opened in the dialog: path -> {bm,blob,orig,q,maxW,existing}. Only a level the user applies puts the image into the commit */
+function canTune(p){ return !!p&&!isVideo(p)&&/-r\.webp$/.test(p)&&!/^(https?:|blob:|data:)/.test(p); }   /* images the builder made (name-r.webp) */
+function qualitySource(path){
+  var P=pending[path]; if(P&&P.bm) return Promise.resolve(P);
+  if(loaded[path]) return Promise.resolve(loaded[path]);
+  if(/^(https?:|blob:|data:)/.test(path)) return Promise.reject(new Error("Ảnh dán từ link ngoài (R2, CDN) không chỉnh được ở đây. Hãy tải file lên builder."));
+  if(!/-r\.webp$/.test(path)) return Promise.reject(new Error("Chỉ chỉnh được ảnh do builder tạo (tên kết thúc bằng -r.webp). Hãy tải ảnh này lên lại để chỉnh."));
+  toast("Đang tải ảnh…",30000);
+  return (P&&P.blob?Promise.resolve(P.blob):fetch("../"+path).then(function(r){ if(!r.ok) throw new Error("Không tải được ảnh (mã "+r.status+")."); return r.blob(); }))
+    .then(function(bl){ return createImageBitmap(bl).then(function(bm){ return (loaded[path]={bm:bm,blob:bl,orig:bl.size,q:.7,maxW:1920,existing:true}); }); });
+}
+function editQuality(path,done){
+  if(!path||isVideo(path)) return;
+  qualitySource(path).then(function(P){ document.getElementById("toast").classList.remove("on"); openQuality(path,done,P); }).catch(function(e){ toast(e.message,5000); });
+}
+function openQuality(path,done,P0){
+  var P=P0||pending[path]; if(!P||!P.bm) return;
   var q=Math.round(P.q*100), maxW=P.maxW, timer=null, seq=0, cur=null;
   var img=h("img",{alt:""}), sizeEl=h("div",{class:"qsize"}), qv=h("b",{},[q+"%"]);
   var slider=h("input",{type:"range",min:40,max:95,step:1,value:q});
@@ -226,12 +241,13 @@ function openQuality(path,done){
     h("div",{class:"qprev"},[img]),
     h("label",{},["Chất lượng WebP ",qv,slider]), h("label",{},["Kích thước",sel2]),
     sizeEl, h("div",{class:"meta"},["Gợi ý: 78% (70% nếu ảnh nhiều grain). Dưới 60% có thể thấy vỡ hạt."]),
+    P.existing?h("div",{class:"meta"},["Ảnh đã đăng: nén lại từ file hiện tại, nên chỉ giảm chất lượng (tăng lên không lấy lại chi tiết đã mất). Ảnh dùng cache dài, người đã xem trước đó có thể vẫn giữ bản cũ."]):null,
     h("div",{class:"row"},[ok,cancel])])]);
   function close(){ clearTimeout(timer); if(cur) URL.revokeObjectURL(cur); bd.remove(); }
   function est(){ var my=++seq; sizeEl.textContent="Đang tính…";
     encode(P.bm,+sel2.value,q/100).then(function(b){ if(my!==seq) return;
       if(cur) URL.revokeObjectURL(cur); cur=URL.createObjectURL(b); img.src=cur;
-      sizeEl.textContent="WebP "+q+"%: "+fmtKB(b.size)+(P.orig?"  ·  file gốc: "+fmtKB(P.orig):"")+(b.size>HEAVY_BYTES?"  — hơi nặng":""); }); }
+      sizeEl.textContent="WebP "+q+"%: "+fmtKB(b.size)+(P.orig?"  ·  "+(P.existing?"file hiện tại: ":"file gốc: ")+fmtKB(P.orig):"")+(P.existing&&b.size>=P.orig*.97?"  — chưa nhẹ hơn file hiện tại, kéo thấp hơn":(b.size>HEAVY_BYTES?"  — hơi nặng":"")); }); }
   slider.addEventListener("input",function(){ q=+slider.value; qv.textContent=q+"%"; clearTimeout(timer); timer=setTimeout(est,150); });
   sel2.addEventListener("change",est);
   cancel.addEventListener("click",close);
@@ -254,8 +270,9 @@ function mediaSlot(obj,key,opts){
     meta.textContent=msg; meta.className="meta"+(warn?" warn":"");
   }
   function paint(){ var p=obj[key]; th.innerHTML=""; path.textContent=p||"Chưa có"; meta.textContent="";
-    var P=p&&pending[p]; qinfo.textContent=P&&P.bm?"WebP "+Math.round(P.q*100)+"% · "+fmtKB(P.blob.size)+" — bấm vào ảnh để chỉnh chất lượng":"";
-    th.style.cursor=P&&P.bm?"pointer":""; th.title=P&&P.bm?"Chỉnh chất lượng":"";
+    var P=p&&pending[p], can=!!(P&&P.bm)||canTune(p);
+    qinfo.textContent=P&&P.bm?"WebP "+Math.round(P.q*100)+"% · "+fmtKB(P.blob.size)+" — bấm vào ảnh để chỉnh chất lượng":(can?"Ảnh đã đăng — bấm vào ảnh để nén lại (chỉ nên giảm chất lượng)":"");
+    th.style.cursor=can?"pointer":""; th.title=can?"Chỉnh chất lượng":"";
     if(p){ var el=isVideo(p)?h("video",{src:src(p),muted:true,loop:true,autoplay:true,playsinline:true}):h("img",{src:src(p),alt:""});
       if(opts.ratio) th.style.aspectRatio=String(opts.ratio);
       el.addEventListener(isVideo(p)?"loadedmetadata":"load",function(){ check(el.videoWidth||el.naturalWidth,el.videoHeight||el.naturalHeight); });
@@ -267,7 +284,7 @@ function mediaSlot(obj,key,opts){
     processFile(f,opts.base?opts.base():slug(works[sel]&&works[sel].title),opts.dir).then(function(p){ obj[key]=p; paint(); mark(); toast(opts.imagesOnly?"Đã thêm ảnh.":"Đã thêm."); if(opts.after) opts.after(); })
       .catch(function(e){ toast(e.message,5000); }); file.value=""; }}});
   url.addEventListener("change",function(){ var v=url.value.trim(); if(!v) return; if(opts.imagesOnly&&isVideo(v)){ toast("Ảnh cover phải là ảnh."); return; } obj[key]=v; paint(); mark(); });
-  th.addEventListener("click",function(){ var P=pending[obj[key]]; if(P&&P.bm) openQuality(obj[key],paint); });
+  th.addEventListener("click",function(){ editQuality(obj[key],paint); });
   paint();
   return h("div",{class:"slot"+(opts.stack?" stack":"")},[th,h("div",{class:"info"},[
     h("div",{class:"row"},[h("button",{class:"shrink",on:{click:function(){ file.click(); }}},[opts.imagesOnly?"Chọn ảnh":"Chọn ảnh / video"]),

@@ -61,7 +61,7 @@ window.PLAY = [
   {
     "title": "MORA coffee menu",
     "note": "This is taken from a menu I designed for the homestay my girlfriend and I run. The illustration is from Pinterest - really cute.",
-    "src": "assets/play/work-mw4dsuos-r.webp"
+    "src": "assets/play/mora-coffee-menu-mw4ffzsi-r.webp"
   },
   {
     "title": "Jazzmia Nights",
@@ -86,7 +86,7 @@ window.PLAY = [
   {
     "title": "Chan Troi Anh Sao",
     "note": "This is the hero section of a website I designed for the “Chan De 2025” competition.",
-    "src": "assets/play/work-mw4f7mnw-r.webp"
+    "src": "assets/play/chan-troi-anh-sao-mw4fg8vk-r.webp"
   },
   {
     "title": "Direct Address",

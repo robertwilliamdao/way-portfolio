@@ -92,5 +92,10 @@ window.PLAY = [
     "title": "Direct Address",
     "note": "A concept logo for Direct Address",
     "src": "assets/play/work-mw4fc539-r.webp"
+  },
+  {
+    "title": "Indigo Report",
+    "note": "Another experimental cover for my personal project, Indigo.",
+    "src": "assets/play/work-mw4fjb78-r.webp"
   }
 ];

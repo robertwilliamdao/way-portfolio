@@ -1076,9 +1076,10 @@
         gsap.set(im,fromRect(b,to)); gsap.set(im,{clipPath:"inset(100% 0% 0% 0%)",opacity:1});
       });
       document.documentElement.classList.remove("loading");
-      /* Every work is shown; past ~5 works the rhythm tightens so the whole loader never exceeds 4s */
-      var FIXED=.15+.6+.2+1.15, CAP=4, k=N>1?Math.min(1,(CAP-FIXED)/((N-1)*(.35+.07))):1;
-      var STEP=.35*k, FLYGAP=.07*k, REVEAL=.6*Math.max(.5,k);
+      /* Every work is shown; the whole loader never exceeds CAP seconds. RAW is its length at normal speed (grows with the number of works);
+         when that is more than CAP, every timing below shrinks by the same factor s, so the rhythm stays the same, just faster */
+      var CAP=2.5, RAW=.15+.6+.2+1.15+(N-1)*(.35+.07), s=Math.min(1,CAP/RAW);
+      var PRE=.15*s, STEP=.35*s, FLYGAP=.07*s, REVEAL=.6*s, GAP=.2*s, FLY=1.15*s;
       var tl=gsap.timeline({onComplete:function(){
         imgs.forEach(function(im){ unpin(im); im.style.zIndex=""; gsap.set(im,{clearProps:"clipPath"}); });
         L.remove(); unlock(); busy=false; window.wayLoaderRunning=false;
@@ -1087,14 +1088,14 @@
       /* 1. Reveal each work in turn with a bottom-up crop mask */
       /* each work appears as tiles of random image fragments that lock into place, like the text scramble */
       imgs.forEach(function(im,i){
-        tl.add(function(){ scrambleReveal(im,b,REVEAL,51+i*2+1); },.15+i*STEP);
-        tl.to({},{duration:REVEAL},.15+i*STEP);
+        tl.add(function(){ scrambleReveal(im,b,REVEAL,51+i*2+1); },PRE+i*STEP);
+        tl.to({},{duration:REVEAL},PRE+i*STEP);
       });
       /* 2. All scale up and slide to where their cards sit; top of the stack leaves first */
-      tl.addLabel("fly","+=.2");
-      tl.add(startIntro,"fly+=.35");
-      tl.to(bgL,{opacity:0,duration:.8,ease:"power2.inOut"},"fly+=.15");
-      for(var i=N-1;i>=0;i--){ tl.to(imgs[i],{x:0,y:0,scaleX:1,scaleY:1,duration:1.15,ease:"power4.inOut"},"fly+="+((N-1-i)*FLYGAP)); }
+      tl.addLabel("fly","+="+GAP);
+      tl.add(startIntro,"fly+="+.35*s);
+      tl.to(bgL,{opacity:0,duration:.8*s,ease:"power2.inOut"},"fly+="+.15*s);
+      for(var i=N-1;i>=0;i--){ tl.to(imgs[i],{x:0,y:0,scaleX:1,scaleY:1,duration:FLY,ease:"power4.inOut"},"fly+="+((N-1-i)*FLYGAP)); }
     });
   })();
 })();

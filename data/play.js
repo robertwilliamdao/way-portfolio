@@ -57,5 +57,35 @@ window.PLAY = [
     "title": "UNINVITED",
     "note": "One of the page from the concept moodboard I built for UNOne of the pages from the concept moodboard I built for UNINVITED. This particular design aims for a bolder, sportier, Nike-like feel.INVITED, this particular design strike for more bold, sport, nike feeling",
     "src": "assets/play/uninvited-mw3orfnq-r.webp"
+  },
+  {
+    "title": "MORA coffee menu",
+    "note": "This is taken from a menu I designed for the homestay my girlfriend and I run. The illustration is from Pinterest - really cute.",
+    "src": "assets/play/work-mw4dsuos-r.webp"
+  },
+  {
+    "title": "Jazzmia Nights",
+    "note": "An unused concept for a Jazzmia poster, where I blended a trumpet into the image.",
+    "src": "assets/play/work-mw4dvn2m-r.webp"
+  },
+  {
+    "title": "AI Data social post",
+    "note": "This is taken from a concept design I made for an AI data company. I chose a fresher and more unique approach for this to make the content actually visually engaging and easy to digest.",
+    "src": "assets/play/work-mw4ec3x9-r.webp"
+  },
+  {
+    "title": "The Fat Problem",
+    "note": "One of the concept design I taken from my personal project \"The Fat Problem\" where I never actually finish it.",
+    "src": "assets/play/work-mw4efsc7-r.webp"
+  },
+  {
+    "title": "MORA Map",
+    "note": "This is a map shows the highlights near our homestay.",
+    "src": "assets/play/work-mw4f4rly-r.webp"
+  },
+  {
+    "title": "Chan Troi Anh Sao",
+    "note": "This is the hero section of a website I designed for the “Chan De 2025” competition.",
+    "src": "assets/play/work-mw4f7mnw-r.webp"
   }
 ];

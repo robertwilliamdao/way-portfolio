@@ -29,15 +29,4 @@
 #wayPlay .wp-sc{position:relative;color:transparent}
 #wayPlay .wp-sc::after{content:attr(data-s);position:absolute;left:0;top:0;width:100%;text-align:center;color:var(--c)}
 #wayPlay .wp-lb.in .wp-lbcap{opacity:1}
-/* Gallery (a shot with extra images, play.js): the main image is .wp-lbimg, the others are .wp-gimg. Each has a sibling .wp-gs holding the glitch strips
-   (sharp copies of the image, clipped to a band and shifted sideways). Position, scale, blur and opacity are set by play.js on every frame. */
-#wayPlay .wp-lbimg,#wayPlay .wp-gimg{-webkit-user-drag:none;user-select:none}
-#wayPlay .wp-gimg,#wayPlay .wp-gs{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
-#wayPlay .wp-gimg{object-fit:cover;background:#1e1e1e;opacity:0;cursor:pointer}
-#wayPlay .wp-gs{pointer-events:none}
-#wayPlay .wp-gs img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;display:none;pointer-events:none;-webkit-user-drag:none}
-#wayPlay .wp-lb.gal{cursor:grab;touch-action:none}
-#wayPlay .wp-lb.gal.drag{cursor:grabbing}
-#wayPlay .wp-lb.gal .wp-lbimg{cursor:inherit}
-#wayPlay .wp-lbcap{z-index:40}
 @media (prefers-reduced-motion:reduce){#wayPlay .wp-lbimg{transition-duration:.01s}}

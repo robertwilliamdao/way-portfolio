@@ -89,6 +89,16 @@ section > h2 button{font-size:14px}
 @media (max-width:800px){.wrap{grid-template-columns:1fr}aside{border-right:0;border-bottom:.5px solid var(--line)}.grid2{grid-template-columns:1fr}main{padding:16px}}
 .tabs{display:flex;gap:6px;margin-right:auto;margin-left:12px}
 button.tab.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+/* Playground: extra images of a shot */
+.xs{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+.xi{width:132px;display:flex;flex-direction:column;gap:6px;border:.5px solid transparent;padding:6px;background:var(--card);cursor:grab;user-select:none}
+.xi:hover{border-color:var(--line)} .xi.drag{opacity:.4}
+.xi .xt{position:relative;aspect-ratio:4/5;background:#222;overflow:hidden}
+.xi .xt img{width:100%;height:100%;object-fit:contain;display:block;-webkit-user-drag:none}
+.xi .xn{position:absolute;left:4px;top:4px;font-size:11px;background:var(--bg);color:var(--mut);padding:1px 6px;border-radius:100px}
+.xi .xb{display:flex;gap:4px}
+.xi .xb button{flex:1;padding:3px 0;font-size:12px}
+.xadd{width:132px;min-height:120px;border-style:dashed;border-radius:0;white-space:normal}
 </style>
 </head>
 <body>
@@ -146,8 +156,9 @@ function migrate(w){
   return w;
 }
 function serialize(){ return "/* Edited by the builder (admin/). Every work: card info, detail info, and a list of layout blocks. */\nwindow.WORKS = "+JSON.stringify(works,function(k,v){ return k==="_idTouched"?undefined:v; },2)+";\n"; }
-var PLAY_HEAD="/* Playground shots. Edited by the builder (admin/, tab Playground) or by hand.\n   title = headline, note = body: shown at the bottom of the Playground while the pointer is on a shot, and under the image when it is opened.\n   src = image ending in -r.webp (the site uses the -r-640 and -r-1280 copies the builder makes).\n   ar / pos are optional and force a crop (aspect ratio, focus point 0..1). Without them a shot keeps its own aspect ratio. */\nwindow.PLAY = ";
-function serializePlay(){ return PLAY_HEAD+JSON.stringify(play.filter(function(s){ return s.src; }),null,2)+";\n"; }   /* a shot without an image is not published */
+var PLAY_HEAD="/* Playground shots. Edited by the builder (admin/, tab Playground) or by hand.\n   title = headline, note = body: shown at the bottom of the Playground while the pointer is on a shot, and under the image when it is opened.\n   src = image ending in -r.webp (the site uses the -r-640 and -r-1280 copies the builder makes).\n   more = optional extra images (same format as src). They show only in the pop-up, beside the main image (src, always the first); drag sideways to see the next.\n   ar / pos are optional and force a crop (aspect ratio, focus point 0..1). Without them a shot keeps its own aspect ratio. */\nwindow.PLAY = ";
+function cleanShot(s){ var o=Object.assign({},s), m=(s.more||[]).filter(Boolean); if(m.length) o.more=m; else delete o.more; return o; }   /* no empty "more" in the file */
+function serializePlay(){ return PLAY_HEAD+JSON.stringify(play.filter(function(s){ return s.src; }).map(cleanShot),null,2)+";\n"; }   /* a shot without an image is not published */
 function usedPaths(){ var s=JSON.stringify(works)+JSON.stringify(play), out=[];
   Object.keys(pending).forEach(function(p){ if(pending[p].variant) return; if(s.indexOf('"'+p+'"')>=0){ out.push(p);
     if(/-r\.webp$/.test(p)){ var b=p.replace(/\.webp$/,""); [b+"-1280.webp",b+"-640.webp"].forEach(function(v){ if(pending[v]) out.push(v); }); } } });
@@ -463,6 +474,45 @@ function addShots(e){
     .then(function(){ psel=play.length-1; mark(); renderList(); renderEditor(); toast("Đã thêm "+files.length+" shot. Bấm vào từng shot để viết headline và body."); })
     .catch(function(err){ toast(err.message,5000); renderList(); renderEditor(); });
 }
+/* Extra images of a shot (data: more). The image above is the main one (the first); these sit beside it in the pop-up. */
+function thumbSrc(p){ if(!p) return ""; if(pending[p]) return pending[p].url; return /^https?:|^blob:|^data:/.test(p)?p:"../"+p.replace(/-r\.webp$/,"-r-640.webp"); }
+function addExtras(s,inp,done){
+  var files=[].slice.call(inp.files); inp.value=""; if(!files.length) return;
+  toast("Đang xử lý "+files.length+" ảnh…",60000);
+  files.reduce(function(p,f){ return p.then(function(){
+    if(!/^image\//.test(f.type)) return Promise.reject(new Error("Ảnh bổ sung chỉ nhận ảnh."));
+    return processFile(f,(slug(s.title)||"shot")+"-"+((s.more||[]).length+2),PLAY_DIR).then(function(path){ (s.more=s.more||[]).push(path); });
+  }); },Promise.resolve())
+    .then(function(){ mark(); done(); toast("Đã thêm "+files.length+" ảnh bổ sung."); })
+    .catch(function(err){ mark(); done(); toast(err.message,5000); });
+}
+function extrasBox(s){
+  var box=h("div",{class:"xs"}), file=h("input",{type:"file",accept:"image/*",multiple:true,style:"display:none"}), dragI=null;
+  function move(i,d){ var j=i+d; if(j<0||j>=s.more.length) return; var m=s.more.splice(i,1)[0]; s.more.splice(j,0,m); mark(); paint(); }
+  function makeMain(i){ var m=s.more[i]; s.more[i]=s.src; s.src=m; delete s.ar; delete s.pos; mark(); renderList(); renderEditor(); }   /* swap with the main image; its forced crop no longer applies */
+  function paint(){
+    box.innerHTML="";
+    (s.more||[]).forEach(function(p,i){
+      var P=pending[p], img=h("img",{src:thumbSrc(p),alt:"",draggable:"false"});
+      if(P&&P.bm){ img.style.cursor="pointer"; img.title="Chỉnh chất lượng nén"; img.addEventListener("click",function(){ openQuality(p,paint); }); }
+      var card=h("div",{class:"xi",draggable:"true",on:{
+        dragstart:function(){ dragI=i; card.classList.add("drag"); },
+        dragend:function(){ card.classList.remove("drag"); },
+        dragover:function(e){ e.preventDefault(); },
+        drop:function(e){ e.preventDefault(); if(dragI===null||dragI===i) return; var m=s.more.splice(dragI,1)[0]; s.more.splice(i,0,m); dragI=null; mark(); paint(); }}},[
+        h("div",{class:"xt"},[img,h("span",{class:"xn"},[String(i+2)])]),
+        h("div",{class:"xb"},[
+          h("button",{title:"Đặt làm ảnh chính (đổi chỗ với ảnh chính hiện tại)",on:{click:function(){ makeMain(i); }}},["★"]),
+          h("button",{title:"Dịch sang trái",on:{click:function(){ move(i,-1); }}},["←"]),
+          h("button",{title:"Dịch sang phải",on:{click:function(){ move(i,1); }}},["→"]),
+          h("button",{title:"Bỏ ảnh này",on:{click:function(){ s.more.splice(i,1); mark(); paint(); renderList(); }}},["✕"])])]);
+      box.appendChild(card);
+    });
+    box.appendChild(h("button",{class:"xadd",on:{click:function(){ file.click(); }}},["+ Thêm ảnh bổ sung"]));
+  }
+  file.addEventListener("change",function(){ addExtras(s,file,function(){ paint(); renderList(); }); });
+  paint(); return h("div",{},[box,file]);
+}
 function renderPlayList(){
   var aside=document.querySelector("aside"); aside.innerHTML="";
   if(!playOk){ aside.appendChild(h("p",{class:"mut"},["Không đọc được data/play.js."])); return; }
@@ -478,7 +528,7 @@ function renderPlayList(){
       dragend:function(){ it.classList.remove("drag"); },
       dragover:function(e){ e.preventDefault(); },
       drop:function(e){ e.preventDefault(); if(dragI===null||dragI===i) return; var m=play.splice(dragI,1)[0]; play.splice(i,0,m); psel=i; mark(); renderList(); renderEditor(); }}},
-      [h("span",{class:"h"},["⋮⋮"]),h("img",{src:pthumb(s),alt:""}),h("span",{class:"t"},[s.title||(s.src?"(chưa có headline)":"(chưa có ảnh)")])]);
+      [h("span",{class:"h"},["⋮⋮"]),h("img",{src:pthumb(s),alt:""}),h("span",{class:"t"},[s.title||(s.src?"(chưa có headline)":"(chưa có ảnh)")]),s.more&&s.more.length?h("span",{class:"tag",title:"Số ảnh bổ sung"},["+"+s.more.length]):null]);
     aside.appendChild(it);
   });
 }
@@ -492,6 +542,8 @@ function renderPlayEditor(main){
     h("div",{class:"mut"},["Ảnh của shot. Giữ đúng tỉ lệ ảnh bạn đăng (các shot lệch tỉ lệ vẫn được chuẩn hoá về cùng độ lớn). Tải lên xong, bấm vào ảnh để chỉnh chất lượng nén."]),
     mediaSlot(s,"src",{imagesOnly:true,required:true,wide:true,quiet:true,dir:PLAY_DIR,base:function(){ return slug(s.title)||"shot"; },after:renderList}),
     s.ar?h("div",{class:"row"},[h("span",{class:"mut"},["Đang ép tỉ lệ "+s.ar+" (ảnh bị cắt cho vừa)."]),h("button",{class:"shrink",on:{click:function(){ delete s.ar; delete s.pos; mark(); renderEditor(); }}},["Dùng tỉ lệ gốc"])]):null,
+    h("div",{class:"mut"},["Ảnh bổ sung (tuỳ chọn). Chỉ hiện khi bấm vào shot: nằm hai bên ảnh chính, nhỏ hơn, mờ và glitch; kéo ngang để xem tiếp. Ảnh ở trên là ảnh đầu tiên (ảnh chính, hiện trên quả cầu). Kéo thả hoặc dùng ← → để đổi thứ tự, ★ để đặt ảnh đó làm ảnh chính."]),
+    extrasBox(s),
     field("Headline",s,"title",{live:renderList,ph:"Tên shot"}),
     field("Body",s,"note",{area:true,rows:4,ph:"Mô tả ngắn về shot…"}),
     h("p",{class:"mut"},["Headline và body chỉ hiện khi bấm vào shot trong Playground: nằm giữa phía dưới ảnh, chữ chạy hiệu ứng scramble, rộng tối đa 600px, căn giữa. Rê chuột chưa hiện chữ. Để trống body thì chỉ hiện headline. Shot chưa có ảnh sẽ không được đăng."])]));
@@ -501,7 +553,7 @@ function renderPlayEditor(main){
 function preview(){
   var clean=JSON.parse(JSON.stringify(works,function(k,v){ return k==="_idTouched"?undefined:v; }));
   var map={}; Object.keys(pending).forEach(function(p){ map[p]=pending[p].url; });
-  var shots=play.filter(function(x){ return x.src; });
+  var shots=play.filter(function(x){ return x.src; }).map(cleanShot);
   try{ localStorage.setItem("way-preview",JSON.stringify({works:clean,play:shots,map:map,t:Date.now()})); }catch(e){ toast("Dữ liệu quá lớn để xem trước."); return; }
   window.open("../?preview=1","way-preview");
 }

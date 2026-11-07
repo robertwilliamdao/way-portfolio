@@ -13,7 +13,7 @@
     '<div class="wp-bar wp-top"><a href="index.html" class="wp-back">Back</a></div>'+
     '<div class="wp-bar wp-bot"><span class="wp-cap">Play around</span>'+
     '<div class="wp-zoom"><button class="wp-zo" aria-label="Zoom out">−</button><button class="wp-zi" aria-label="Zoom in">+</button></div></div>'+
-    '<div class="wp-lb"><img class="wp-lbimg" alt=""><div class="wp-lbcap"><b></b><span></span></div></div>';
+    '<div class="wp-lb"><img class="wp-lbimg" alt=""><div class="wp-lbcap"><b></b><span></span></div><div class="wp-close"></div></div>';
 
   function mount(root,opt){
     opt=opt||{};
@@ -21,7 +21,7 @@
     if(!N) return null;
     root.innerHTML=TEMPLATE;
     var $=function(s){ return root.querySelector(s); };
-    var cv=$(".wp-gl"), lb=$(".wp-lb"), lbImg=$(".wp-lbimg"), lbCap=$(".wp-lbcap"), lbH=$(".wp-lbcap>b"), lbP=$(".wp-lbcap>span");
+    var cv=$(".wp-gl"), lb=$(".wp-lb"), lbImg=$(".wp-lbimg"), lbCap=$(".wp-lbcap"), lbH=$(".wp-lbcap>b"), lbP=$(".wp-lbcap>span"), lbClose=$(".wp-close");
     var thumbOf=function(s){ return s.replace(/-r\.webp$/,"-r-640.webp"); }, bigOf=function(s){ return s.replace(/-r\.webp$/,"-r-1280.webp"); };
     var BLANK=(function(){ var c=document.createElement("canvas"); c.width=c.height=1; var x=c.getContext("2d"); x.fillStyle="#1e1e1e"; x.fillRect(0,0,1,1); return c.toDataURL(); })();   /* a shot without an image yet */
     var tUrl=function(d){ return d.thumb||(d.src?thumbOf(d.src):BLANK); }, bUrl=function(d){ return d.big||(d.src?bigOf(d.src):BLANK); };
@@ -294,25 +294,205 @@
     $(".wp-zi").onclick=function(){ touch(); zt=clampZ(zt*1.3); }; $(".wp-zo").onclick=function(){ touch(); zt=clampZ(zt/1.3); };
 
     /* ---------- pop-up: the shot flies from the globe to the centre and back ---------- */
-    function box(c){ var bw=Math.min(W*.88,H*.70*c.ar), bh=bw/c.ar; return {w:bw,h:bh,x:(W-bw)/2,y:(H-bh)/2-H*.04}; }
+    /* A shot can carry more images: data `more` = [src, …] (the first image, src, is the main one). The pop-up is then a small gallery:
+       the main image in the centre, the others beside it — half its size, far from it and faded. Only the image in the spotlight (the centre)
+       is sharp: the others are "grid split", the same effect as the card hover on the home page (tiles of the image shifted and stretched), and they
+       come together tile by tile when dragged into the centre. They appear with a tile scramble when the pop-up opens. Drag sideways, press ← →, or click
+       one of them to bring it to the centre. Closing happens from whichever image is on screen: it shrinks into the card and turns into the original
+       (main) image on the way. A shot without `more` behaves exactly as before. */
+    var gal=null, gp=null, closing=false, skipClick=false, closeOn=false, NB=.42, NOP=.4, TILES=12, SPLIT=1.8;   /* NB: size of the images beside the main one (× the main); NOP: their opacity; TILES: tiles along the long side of an image that is grid split; SPLIT: how hard the tiles are shifted and stretched (1 = the card hover) */
+    function imgsOf(d){ var a=[d]; (d.more||[]).forEach(function(m){ if(m) a.push(typeof m==="string"?{src:m}:m); }); return a; }
+    function fitW(g){ return g?W*(W<800?.72:.6):W*.88; }            /* a gallery leaves room on both sides of the main image */
+    function box(c,g){ var bw=Math.min(fitW(g),H*.70*c.ar), bh=bw/c.ar; return {w:bw,h:bh,x:(W-bw)/2,y:(H-bh)/2-H*.04}; }
     function fly(r,b){ return "translate("+r.x+"px,"+r.y+"px) scale("+(r.w/b.w)+","+(r.h/b.h)+")"; }
+    /* "close" label that follows the mouse outside the images: the same as in the project pop-up on the home page (size and colour in play.css, fade .15s,
+       the text scrambles in over .6s). On the home page the very same GSAP ScrambleText call is used; play.html on its own has no GSAP and uses the built-in scramble. */
+    function scrambleSite(el,text,dur){
+      var G=window.gsap;
+      if(!G||!G.plugins||!G.plugins.scrambleText){ scrambleTo(el,"c",text,0,dur); return; }
+      if(el._scr) el._scr.kill(); el.textContent=text;
+      var w=el.getBoundingClientRect().width; el.style.width=w+"px"; el.style.whiteSpace="nowrap"; el.style.overflow="visible";
+      el._scr=G.to(el,{duration:dur,scrambleText:{text:text,chars:SCR,revealDelay:.15,speed:.6},onComplete:function(){ el.style.width=""; el.style.whiteSpace=""; el.style.overflow=""; el._scr=null; }});
+    }
+    function closeLabel(on,x,y){
+      if(on){ lbClose.style.transform="translate("+x+"px,"+y+"px) translate(-50%,-50%)"; if(closeOn) return; closeOn=true; lbClose.style.opacity=1; lb.classList.add("nocur"); scrambleSite(lbClose,"close",.6); }
+      else if(closeOn){ closeOn=false; lbClose.style.opacity=0; lb.classList.remove("nocur"); }
+    }
+
+    /* Grid split (the same effect as the card hover on the home page, main.js): an image beside the main one is drawn on a canvas as a grid of tiles
+       (12 x 7 for a 16:9 image) and every tile shows a shifted, stretched piece of the image. The further the image is from the centre, the more its tiles
+       are split; each tile lets go (and comes back) at a slightly different moment, so a moving image assembles (or breaks) tile by tile. */
+    function coverCrop(im,ratio,pos){   /* the part of the image that object-fit:cover shows in a box of this ratio, as fractions of the image: it must not depend on the file size (the file is swapped for a bigger copy later) */
+      var nw=im.naturalWidth, nh=im.naturalHeight, fw=1, fh=1;
+      if(nw/nh>ratio) fw=nh*ratio/nw; else fh=nw/ratio/nh;
+      return {fx:(1-fw)*pos[0], fy:(1-fh)*pos[1], fw:fw, fh:fh};
+    }
+    function ensureCv(m){
+      if(m.cv) return true; if(!m.img.naturalWidth) return false;
+      var S=Math.max(m.w,m.h)/TILES, cols=Math.max(4,Math.round(m.w/S)), rows=Math.max(3,Math.round(m.h/S)), d=Math.min(devicePixelRatio||1,1.5), n=cols*rows, k, a, big;
+      var cv=document.createElement("canvas"); cv.className="wp-gcv"; cv.width=Math.round(m.w*d); cv.height=Math.round(m.h*d); cv.style.width=m.w+"px"; cv.style.height=m.h+"px"; lb.insertBefore(cv,lbCap);
+      m.cv=cv; m.cx=cv.getContext("2d"); m.cols=cols; m.rows=rows; m.crop=coverCrop(m.img,m.w/m.h,m.pos); m.pi=null; m.scr=0; m.T=[];
+      for(k=0;k<n;k++){   /* per tile: a random direction and zoom for its split (as in the card hover), and the timing of the loader's tile scramble */
+        a=Math.random()*.15+((k%cols)/cols)*.35; big=Math.random()<.55;
+        m.T.push({ph:Math.random(),on:a,lock:Math.min(.98,a+.25+Math.random()*.3),off:Math.random(),rx:Math.random()*2-1,ry:Math.random()*2-1,rs:.05+Math.random()*((big?.9:.3)-.05),rsy:.05+Math.random()*((big?.7:.2)-.05),amp:big?1:.5,until:0,next:0,jx:0,jy:0,jsx:1,jsy:1});
+      }
+      return true;
+    }
+    function splitDraw(m,a,ap,q,now){   /* a: 0 in the centre … 1 beside it; ap: appearing 0…1 (2 = done); q: closing 0…1 */
+      var x=m.cx, im=m.img, nw=im.naturalWidth, nh=im.naturalHeight, cr=m.crop, W2=m.cv.width, H2=m.cv.height, cols=m.cols, rows=m.rows, tw=m.w/cols, th=m.h/rows,
+          ox=cr.fx*nw, oy=cr.fy*nh, kx=cr.fw*nw/m.w, ky=cr.fh*nh/m.h, tq=Math.floor(now/80), first=m.pi===null, r, c, k, t, inf, x0, x1, y0, y1, dx, dy, sx, sy, qw, qh, qx, qy;
+      if(first) m.pi=[]; m.scr=0;
+      x.clearRect(0,0,W2,H2); x.imageSmoothingEnabled=true;
+      for(r=0;r<rows;r++) for(c=0;c<cols;c++){
+        k=r*cols+c; t=m.T[k];
+        inf=Math.max(0,Math.min(1,(a-t.ph*.5)/.5));                        /* how far this tile is split */
+        if(!first&&ap>=1&&q===0&&inf>.45&&m.pi[k]<=.45&&Math.random()<.6){ t.until=now+150+Math.random()*150; t.next=0; }   /* a tile that starts to split jumps for a moment, like on the card hover */
+        m.pi[k]=inf;
+        if(q>0&&t.off<q) continue;                                          /* closing: the tiles switch off in a random order */
+        x0=Math.round(c*W2/cols); x1=Math.round((c+1)*W2/cols); y0=Math.round(r*H2/rows); y1=Math.round((r+1)*H2/rows);
+        if(ap<1){
+          if(ap<t.on) continue;                                             /* appearing: tiles switch on in a loose left-to-right sweep, */
+          if(ap<t.lock){ qx=ox+hashN(k*3.1+tq*7.7)*(cr.fw*nw-tw*kx); qy=oy+hashN(k*5.3+tq*2.9)*(cr.fh*nh-th*ky); x.drawImage(im,qx,qy,tw*kx,th*ky,x0,y0,x1-x0,y1-y0); continue; }   /* flicker through random fragments, then lock */
+        }
+        if(now<t.until){
+          m.scr=1; if(now>=t.next){ t.jx=(Math.random()*2-1)*tw*.5*SPLIT*.7; t.jy=(Math.random()*2-1)*th*.4*SPLIT*.7; t.jsx=1+Math.random()*.3; t.jsy=1+Math.random()*.25; t.next=now+90+Math.random()*70; }
+          dx=t.jx; dy=t.jy; sx=t.jsx; sy=t.jsy;
+        } else { dx=t.rx*tw*.65*t.amp*inf*SPLIT; dy=t.ry*th*.55*t.amp*inf*SPLIT; sx=1+t.rs*.7*inf*SPLIT; sy=1+t.rsy*.7*inf*SPLIT; }
+        qw=tw/sx; qh=th/sy; qx=Math.min(m.w-qw,Math.max(0,(c+.5)*tw-(tw/2+dx)/sx)); qy=Math.min(m.h-qh,Math.max(0,(r+.5)*th-(th/2+dy)/sy));   /* the same window maths as the card hover */
+        x.drawImage(im,ox+qx*kx,oy+qy*ky,qw*kx,qh*ky,x0,y0,x1-x0,y1-y0);
+      }
+    }
+
+    function sizeItem(m){ var bw=Math.min(fitW(true),H*.70*m.ar), bh=bw/m.ar; m.w=bw; m.h=bh; m.img.style.width=bw+"px"; m.img.style.height=bh+"px"; }
+    function galOpen(c){
+      var list=imgsOf(c.d), now=performance.now();
+      var g=gal={items:[],gx:0,target:0,unit:300,drag:false,out:false,taken:false,dirty:true,last:now,tIn:now+300,tOut:0,land:now+620,animUntil:now+1500,hk:0,pre:-1,wacc:0,wlock:0,raf:0};
+      list.forEach(function(o,k){
+        var m={o:o,k:k,ar:k?.8:c.ar,ready:!k,born:0,big:!k,vis:false,rect:null,pos:k?[.5,.5]:(c.d.pos||[.5,.5]),t0:0,wasFar:true,cv:null,key:""};
+        if(k){ m.img=document.createElement("img"); m.img.className="wp-gimg"; m.img.alt=""; lb.insertBefore(m.img,lbCap); } else m.img=lbImg;
+        m.img.draggable=false; g.items.push(m); sizeItem(m);
+        if(k){ m.img.style.opacity=0;
+          m.img.onload=m.img.onerror=function(){ if(gal!==g) return; var nw=m.img.naturalWidth, nh=m.img.naturalHeight; m.ar=nw&&nh?Math.max(.35,Math.min(3,nw/nh)):.8; sizeItem(m); m.ready=true; m.born=performance.now(); m.t0=Math.max(g.tIn+(k-1)*90,m.born); g.animUntil=Math.max(g.animUntil,m.t0+1000); g.dirty=true; };   /* a file that fails to load still gets a (dark) slot */
+          m.img.src=tUrl(o); }
+      });
+      lb.classList.add("gal"); g.raf=requestAnimationFrame(galLoop);
+    }
+    function galClose(){
+      var g=gal; if(!g) return; cancelAnimationFrame(g.raf); gal=null; gp=null; closeLabel(false);
+      g.items.forEach(function(m,k){ if(m.cv) m.cv.remove(); if(k){ m.img.onload=m.img.onerror=null; m.img.remove(); } });
+      lbImg.style.zIndex=""; lbImg.style.visibility=""; lb.classList.remove("gal","drag");
+    }
+    /* Layout: the images sit in one row (each scaled by its distance from gx, the continuous position being looked at), and the row is
+       shifted so that gx is at the centre. gx is dragged by the pointer and eased to a whole number on release. */
+    function galLayout(now){
+      var g=gal, it=g.items, n=it.length, gx=g.gx, G=Math.max(16,W*(W<800?.05:.08)), cy=H/2-H*.04, xs=[0], sc=[], i, d;
+      for(i=0;i<n;i++){ d=Math.min(1,Math.abs(i-gx)); sc[i]=1-(1-NB)*d; }
+      for(i=1;i<n;i++) xs[i]=xs[i-1]+(it[i-1].w*sc[i-1]+it[i].w*sc[i])/2+G;
+      var unit=Math.max(80,(it[0].w+it[1].w*NB)/2+G), p, q=g.out?Math.min(1,(now-g.tOut)/350):0; g.unit=unit;
+      if(gx<=0) p=gx*unit; else if(gx>=n-1) p=xs[n-1]+(gx-(n-1))*unit; else { var i0=Math.floor(gx); p=xs[i0]+(xs[i0+1]-xs[i0])*(gx-i0); }
+      for(i=0;i<n;i++){
+        var m=it[i], a, far, s, op, x, y, ap, pm, key;
+        d=Math.abs(i-gx); a=Math.min(1,d); far=Math.max(0,Math.min(1,d-1));
+        s=sc[i]; op=(1-(1-NOP)*a)*(1-far); if(i&&!m.ready) op=0;
+        x=W/2+(xs[i]-p)-m.w*s/2; y=cy-m.h*s/2; m.rect={x:x,y:y,w:m.w*s,h:m.h*s}; m.vis=op>.02&&(i>0||g.taken);
+        if(i===0&&(!g.taken||g.out)) continue;                         /* the main image is still flying in / is already flying back (CSS transition) */
+        if(g.out&&i===g.hk) continue;                                  /* ... and so is the image the pop-up is being closed from */
+        if(i&&m.ready){ if(far>=1) m.wasFar=true; else if(m.wasFar){ m.wasFar=false; if(g.tIn<now&&m.t0&&now>m.t0+900){ m.t0=now; g.animUntil=Math.max(g.animUntil,now+1000); } } }   /* an image coming into view appears with the tile scramble too */
+        ap=!i||reduce||!m.t0?2:(now-m.t0)/900;                         /* appearing: 0…1 */
+        pm=m.vis&&(a>.002||ap<1)&&ensureCv(m);                         /* grid split (canvas) unless it is sharp and in the centre */
+        if(pm){ key=Math.round(a*80)+"|"+(ap<1||m.scr?Math.floor(now/16):"-")+"|"+Math.round(q*80); if(m.key!==key){ m.key=key; splitDraw(m,a,ap,q,now); } if(m.scr) g.animUntil=Math.max(g.animUntil,now+300); }
+        var tr="translate("+x.toFixed(1)+"px,"+y.toFixed(1)+"px) scale("+s.toFixed(4)+")", z=20-Math.round(Math.min(d,3)*5), v=m.vis?"":"hidden";
+        m.img.style.transform=tr; m.img.style.opacity=pm?0:op; m.img.style.zIndex=z;
+        if(m.cv){ m.cv.style.transform=tr; m.cv.style.opacity=op; m.cv.style.zIndex=z+1; m.cv.style.display=pm?"block":"none"; }
+        if(m.v!==v){ m.v=v; m.img.style.visibility=v; if(m.cv) m.cv.style.visibility=v; }
+      }
+    }
+    function want(k){ var g=gal, m=g&&g.items[k]; if(!m||m.big) return; m.big=true; var im=new Image(); im.onload=function(){ if(gal===g) m.img.src=im.src; }; im.src=bUrl(m.o); }
+    function setTarget(t){ var g=gal; if(!g) return; g.target=Math.max(0,Math.min(g.items.length-1,t)); g.dirty=true; want(g.target); }
+    function go(d){ if(gal&&!gal.out&&!closing) setTarget(Math.round(gal.target)+d); }
+    function galHit(x,y){
+      var g=gal, best=-1, bd=9; g.items.forEach(function(m,k){ var r=m.rect; if(r&&m.vis&&x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h){ var d=Math.abs(k-g.gx); if(d<bd){ bd=d; best=k; } } });
+      return best;
+    }
+    function galLoop(now){
+      var g=gal; if(!g) return; g.raf=requestAnimationFrame(galLoop);
+      var dt=Math.max(.001,Math.min(.05,(now-g.last)/1000)), moved=false; g.last=now;
+      if(!g.taken&&!g.out&&now>=g.land){ g.taken=true; lbImg.style.transition="none"; g.dirty=true; }
+      if(!g.drag&&g.gx!==g.target){ g.gx+=(g.target-g.gx)*(1-Math.exp(-dt*(reduce?60:7))); if(Math.abs(g.target-g.gx)<.0008) g.gx=g.target; moved=true; }   /* a soft slide */
+      if(g.dirty||moved||g.drag||now<g.animUntil||(g.out&&now<g.tOut+400)){ g.dirty=false; galLayout(now); }
+      if(!g.drag&&g.gx===g.target&&!g.out&&g.pre!==g.target){ g.pre=g.target; want(g.target+1); want(g.target-1); }   /* once settled, fetch the sharp copies of the next ones */
+    }
+
     function openLb(c){
-      if(lbOpen) return; lbOpen=true; cur=c; c.hide=true; w.x=w.y=0; frozenAt=performance.now()+150;
-      var r=c.rect, b=box(c), pos=c.d.pos||[.5,.5];
+      if(lbOpen) return; lbOpen=true; cur=c; closing=false; c.hide=true; w.x=w.y=0; frozenAt=performance.now()+150;
+      var g=imgsOf(c.d).length>1, r=c.rect, b=box(c,g), pos=c.d.pos||[.5,.5];
       lbImg.style.transition="none"; lbImg.src=tUrl(c.d); lbImg.style.objectPosition=(pos[0]*100)+"% "+(pos[1]*100)+"%";
       lbImg.style.width=b.w+"px"; lbImg.style.height=b.h+"px"; lbImg.style.opacity=c.fog; lbImg.style.transform=fly(r,b);
       scrambleTo(lbH,"h",c.d.title||"",.3,Math.min(.9,.25+(c.d.title||"").length*.03)); scrambleTo(lbP,"p",c.d.note||"",.38,Math.min(1.5,.4+(c.d.note||"").length*.006));
       lb.classList.add("on"); void lbImg.offsetWidth; lbImg.style.transition=""; lb.classList.add("in");
       lbImg.style.opacity=1; lbImg.style.transform="translate("+b.x+"px,"+b.y+"px) scale(1)";
       var hi=new Image(); hi.onload=function(){ if(cur===c) lbImg.src=hi.src; }; hi.src=bUrl(c.d);
+      if(g) galOpen(c);
     }
     function closeLb(){
-      if(!lbOpen||!cur) return; var c=cur, r=c.rect, b=box(c); lb.classList.remove("in");
-      lbImg.style.opacity=c.fog; lbImg.style.transform=fly(r,b);
-      setTimeout(function(){ c.hide=false; lbOpen=false; cur=null; clearText(); step(performance.now(),true); lb.classList.remove("on"); },600);   /* redraw first, then drop the pop-up: no empty gap */
+      if(!lbOpen||!cur||closing) return; closing=true;
+      if(gal){ if(gp){ gp=null; gal.drag=false; lb.classList.remove("drag"); } closeLabel(false); }
+      finishClose();
     }
-    lb.addEventListener("click",closeLb);
-    addEventListener("keydown",function(e){ if(e.key==="Escape") closeLb(); });
+    function finishClose(){
+      var c=cur, g=gal, r=c.rect, b=box(c,!!g); lb.classList.remove("in");
+      if(g){
+        var k=Math.round(g.gx), hk=g.items[k], hr=hk.rect; g.out=true; g.tOut=performance.now(); g.hk=k; g.dirty=true;
+        lbImg.style.filter=""; lbImg.style.visibility=""; lbImg.style.zIndex="";
+        if(g.items[0].cv) g.items[0].cv.style.display="none"; if(hk.cv) hk.cv.style.display="none";
+        if(k){   /* closing from another image: it shrinks into the card while the original (main) image fades in over it */
+          var s0=Math.sqrt(hr.w*hr.h/(b.w*b.h)), cx=hr.x+hr.w/2, cy=hr.y+hr.h/2;
+          lbImg.style.transition="none"; lbImg.style.opacity=0; lbImg.style.transform="translate("+(cx-b.w*s0/2)+"px,"+(cy-b.h*s0/2)+"px) scale("+s0+")";
+          hk.img.style.transition="none"; hk.img.style.visibility=""; hk.img.style.opacity=1;
+          void lbImg.offsetWidth;
+          hk.img.style.transition="transform .6s cubic-bezier(.16,.84,.3,1),opacity .4s ease-in .1s"; hk.img.style.transform=fly(r,{w:hk.w,h:hk.h}); hk.img.style.opacity=0;
+          lbImg.style.transition="transform .6s cubic-bezier(.16,.84,.3,1),opacity .45s ease-out";
+        } else { lbImg.style.transition=""; void lbImg.offsetWidth; }
+      }
+      lbImg.style.opacity=c.fog; lbImg.style.transform=fly(r,b);
+      setTimeout(function(){ c.hide=false; lbOpen=false; cur=null; clearText(); step(performance.now(),true); lb.classList.remove("on"); galClose(); closing=false; },600);   /* redraw first, then drop the pop-up: no empty gap */
+    }
+    lb.addEventListener("click",function(e){
+      if(skipClick){ skipClick=false; return; }
+      if(gal&&!gal.out&&!closing){
+        var k=galHit(e.clientX,e.clientY);
+        if(k>=0){ if(k!==Math.round(gal.target)) setTarget(k); return; }   /* a click on a neighbour brings it to the centre; on the main image nothing happens (it is for dragging) */
+      }
+      closeLb();                                                           /* outside the images (or a pop-up with a single image): close */
+    });
+    lb.addEventListener("pointerdown",function(e){
+      if(!gal||gal.out||closing||gp||e.button>0) return;
+      gp={id:e.pointerId,x0:e.clientX,gx0:gal.gx,lx:e.clientX,lt:performance.now(),vx:0,moved:0,unit:gal.unit};
+      gal.drag=true; lb.classList.add("drag"); try{ lb.setPointerCapture(e.pointerId); }catch(_){}
+    });
+    lb.addEventListener("pointermove",function(e){
+      if(gal&&!gal.out&&!closing&&e.pointerType==="mouse"){ if(gp) closeLabel(false); else closeLabel(galHit(e.clientX,e.clientY)<0,e.clientX,e.clientY); }   /* "close" shows outside the images */
+      if(!gp||e.pointerId!==gp.id||!gal) return;
+      var now=performance.now(), dx=e.clientX-gp.x0, n=gal.items.length, g=gp.gx0-dx/gp.unit;
+      gp.moved=Math.max(gp.moved,Math.abs(dx)); gp.vx=gp.vx*.6+((e.clientX-gp.lx)/Math.max(1,now-gp.lt)*1000)*.4; gp.lx=e.clientX; gp.lt=now;
+      if(g<0) g*=.35; else if(g>n-1) g=(n-1)+(g-(n-1))*.35;           /* rubber band at both ends */
+      gal.gx=g; gal.dirty=true;
+    });
+    lb.addEventListener("pointerleave",function(){ closeLabel(false); });
+    function gend(e){
+      if(!gp||e.pointerId!==gp.id) return; var p=gp, g=gal; gp=null; if(!g) return; g.drag=false; lb.classList.remove("drag");
+      var start=Math.round(p.gx0), t=Math.round(g.gx-(p.vx*.22)/p.unit);
+      t=Math.max(start-1,Math.min(start+1,Math.max(0,Math.min(g.items.length-1,t))));   /* one image per swipe */
+      if(p.moved>6){ skipClick=true; setTimeout(function(){ skipClick=false; },60); setTarget(t); } else setTarget(Math.round(g.gx));
+    }
+    lb.addEventListener("pointerup",gend); lb.addEventListener("pointercancel",gend);
+    lb.addEventListener("wheel",function(e){
+      if(!gal||gal.out||closing) return; e.preventDefault();
+      var d=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY, g=gal, now=performance.now(); g.wacc+=d;
+      if(Math.abs(g.wacc)>45&&now>g.wlock){ go(g.wacc>0?1:-1); g.wacc=0; g.wlock=now+380; }
+      clearTimeout(g.wt); g.wt=setTimeout(function(){ g.wacc=0; },160);
+    },{passive:false});
+    addEventListener("keydown",function(e){ if(e.key==="Escape") closeLb(); else if(e.key==="ArrowRight") go(1); else if(e.key==="ArrowLeft") go(-1); });
 
     api.lite=function(v){ lite=!!v; }; api.canvas=cv; api.start=start; api.step=step; api.resume=resume; api.pause=pause; api.dpr=function(){ return dpr; };
     if(opt.standalone){ root.classList.add("on","solo"); resume(); }

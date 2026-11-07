@@ -559,7 +559,7 @@ function renderPlayEditor(main){
     h("div",{class:"mut"},["Ảnh của shot. Giữ đúng tỉ lệ ảnh bạn đăng (các shot lệch tỉ lệ vẫn được chuẩn hoá về cùng độ lớn). Tải lên xong, bấm vào ảnh để chỉnh chất lượng nén."]),
     mediaSlot(s,"src",{imagesOnly:true,required:true,wide:true,quiet:true,dir:PLAY_DIR,base:function(){ return slug(s.title)||"shot"; },after:renderList}),
     s.ar?h("div",{class:"row"},[h("span",{class:"mut"},["Đang ép tỉ lệ "+s.ar+" (ảnh bị cắt cho vừa)."]),h("button",{class:"shrink",on:{click:function(){ delete s.ar; delete s.pos; mark(); renderEditor(); }}},["Dùng tỉ lệ gốc"])]):null,
-    h("div",{class:"mut"},["Ảnh bổ sung (tuỳ chọn). Chỉ hiện khi bấm vào shot: nằm hai bên ảnh chính, nhỏ hơn (khoảng một nửa), mờ và hiện dạng pixel (grid split); ảnh nào ở giữa thì rõ. Kéo ngang để xem tiếp. Ảnh ở trên là ảnh đầu tiên (ảnh chính, hiện trên quả cầu). Kéo thả hoặc dùng ← → để đổi thứ tự, ★ để đặt ảnh đó làm ảnh chính."]),
+    h("div",{class:"mut"},["Ảnh bổ sung (tuỳ chọn). Chỉ hiện khi bấm vào shot: nằm hai bên ảnh chính, nhỏ hơn (khoảng một nửa), mờ và tách thành các ô lệch nhau (grid split, giống hover ảnh ở Works); ảnh nào ở giữa thì rõ. Kéo ngang để xem tiếp. Ảnh ở trên là ảnh đầu tiên (ảnh chính, hiện trên quả cầu). Kéo thả hoặc dùng ← → để đổi thứ tự, ★ để đặt ảnh đó làm ảnh chính."]),
     extrasBox(s),
     field("Headline",s,"title",{live:renderList,ph:"Tên shot"}),
     field("Body",s,"note",{area:true,rows:4,ph:"Mô tả ngắn về shot…"}),

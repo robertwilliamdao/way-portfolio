@@ -296,11 +296,11 @@
     /* ---------- pop-up: the shot flies from the globe to the centre and back ---------- */
     /* A shot can carry more images: data `more` = [src, …] (the first image, src, is the main one). The pop-up is then a small gallery:
        the main image in the centre, the others beside it — half its size, far from it and faded. Only the image in the spotlight (the centre)
-       is sharp: the others are "grid split", i.e. a low-res pixel mosaic made of the same kind of tiles as the loader and the card hover, and they
-       resolve tile by tile when dragged into the centre. They appear with a tile scramble when the pop-up opens. Drag sideways, press ← →, or click
+       is sharp: the others are "grid split", the same effect as the card hover on the home page (tiles of the image shifted and stretched), and they
+       come together tile by tile when dragged into the centre. They appear with a tile scramble when the pop-up opens. Drag sideways, press ← →, or click
        one of them to bring it to the centre. Closing happens from whichever image is on screen: it shrinks into the card and turns into the original
        (main) image on the way. A shot without `more` behaves exactly as before. */
-    var gal=null, gp=null, closing=false, skipClick=false, closeOn=false, NB=.5, NOP=.4, PIX=20;   /* NB: size of the images beside the main one (× the main); NOP: their opacity; PIX: pixels along the long side of a grid-split image */
+    var gal=null, gp=null, closing=false, skipClick=false, closeOn=false, NB=.5, NOP=.4, TILES=12;   /* NB: size of the images beside the main one (× the main); NOP: their opacity; TILES: tiles along the long side of an image that is grid split */
     function imgsOf(d){ var a=[d]; (d.more||[]).forEach(function(m){ if(m) a.push(typeof m==="string"?{src:m}:m); }); return a; }
     function fitW(g){ return g?W*(W<800?.72:.6):W*.88; }            /* a gallery leaves room on both sides of the main image */
     function box(c,g){ var bw=Math.min(fitW(g),H*.70*c.ar), bh=bw/c.ar; return {w:bw,h:bh,x:(W-bw)/2,y:(H-bh)/2-H*.04}; }
@@ -311,44 +311,47 @@
       else if(closeOn){ closeOn=false; lbClose.style.opacity=0; lb.classList.remove("nocur"); }
     }
 
-    /* Grid split: an image beside the main one is drawn on a canvas as a grid of tiles. Each tile is either the sharp image, or a block of a pixel mosaic
-       (mips of 8x8, 4x4, 2x2 or 1 pixel per tile). Which one depends on how far the image is from the centre, with a random offset per tile, so a
-       moving image gets sharper (or coarser) tile by tile, not all at once. */
-    function coverCrop(im,ratio,pos){   /* the part of the image that object-fit:cover shows in a box of this ratio */
-      var nw=im.naturalWidth, nh=im.naturalHeight, sw, sh;
-      if(nw/nh>ratio){ sh=nh; sw=nh*ratio; } else { sw=nw; sh=nw/ratio; }
-      return {sx:(nw-sw)*pos[0], sy:(nh-sh)*pos[1], sw:sw, sh:sh};
-    }
-    function mipFrom(src,cr,tw,th){     /* shrink by halves, so every small pixel is the average of its block */
-      var cur=src, sx=cr.sx, sy=cr.sy, sw=cr.sw, sh=cr.sh, t, c, x;
-      while(sw/2>tw&&sh/2>th){ t=document.createElement("canvas"); t.width=Math.max(tw,Math.round(sw/2)); t.height=Math.max(th,Math.round(sh/2)); t.getContext("2d").drawImage(cur,sx,sy,sw,sh,0,0,t.width,t.height); cur=t; sx=sy=0; sw=t.width; sh=t.height; }
-      c=document.createElement("canvas"); c.width=tw; c.height=th; x=c.getContext("2d"); x.imageSmoothingQuality="high"; x.drawImage(cur,sx,sy,sw,sh,0,0,tw,th); return c;
+    /* Grid split (the same effect as the card hover on the home page, main.js): an image beside the main one is drawn on a canvas as a grid of tiles
+       (12 x 7 for a 16:9 image) and every tile shows a shifted, stretched piece of the image. The further the image is from the centre, the more its tiles
+       are split; each tile lets go (and comes back) at a slightly different moment, so a moving image assembles (or breaks) tile by tile. */
+    function coverCrop(im,ratio,pos){   /* the part of the image that object-fit:cover shows in a box of this ratio, as fractions of the image: it must not depend on the file size (the file is swapped for a bigger copy later) */
+      var nw=im.naturalWidth, nh=im.naturalHeight, fw=1, fh=1;
+      if(nw/nh>ratio) fw=nh*ratio/nw; else fh=nw/ratio/nh;
+      return {fx:(1-fw)*pos[0], fy:(1-fh)*pos[1], fw:fw, fh:fh};
     }
     function ensureCv(m){
       if(m.cv) return true; if(!m.img.naturalWidth) return false;
-      var S=Math.max(m.w,m.h)/PIX, cols=Math.max(4,Math.round(m.w/S)), rows=Math.max(3,Math.round(m.h/S)), d=Math.min(devicePixelRatio||1,1.5), cr=coverCrop(m.img,m.w/m.h,m.pos), n=cols*rows, k, a, b, top;
+      var S=Math.max(m.w,m.h)/TILES, cols=Math.max(4,Math.round(m.w/S)), rows=Math.max(3,Math.round(m.h/S)), d=Math.min(devicePixelRatio||1,1.5), n=cols*rows, k, a, big;
       var cv=document.createElement("canvas"); cv.className="wp-gcv"; cv.width=Math.round(m.w*d); cv.height=Math.round(m.h*d); cv.style.width=m.w+"px"; cv.style.height=m.h+"px"; lb.insertBefore(cv,lbCap);
-      m.cv=cv; m.cx=cv.getContext("2d"); m.cols=cols; m.rows=rows; m.crop=cr; m.ph=[]; m.on=[]; m.lock=[]; m.off=[];
-      for(k=0;k<n;k++){ a=Math.random()*.15+((k%cols)/cols)*.35; m.ph.push(Math.random()); m.on.push(a); m.lock.push(Math.min(.98,a+.25+Math.random()*.3)); m.off.push(Math.random()); }   /* the same timing recipe as the loader's tile scramble */
-      top=mipFrom(m.img,cr,cols*8,rows*8); m.mip=[top];
-      b=mipFrom(top,{sx:0,sy:0,sw:top.width,sh:top.height},cols*4,rows*4); m.mip.push(b);
-      a=mipFrom(b,{sx:0,sy:0,sw:b.width,sh:b.height},cols*2,rows*2); m.mip.push(a);
-      b=mipFrom(a,{sx:0,sy:0,sw:a.width,sh:a.height},cols,rows); m.mip.push(b);
+      m.cv=cv; m.cx=cv.getContext("2d"); m.cols=cols; m.rows=rows; m.crop=coverCrop(m.img,m.w/m.h,m.pos); m.pi=null; m.scr=0; m.T=[];
+      for(k=0;k<n;k++){   /* per tile: a random direction and zoom for its split (as in the card hover), and the timing of the loader's tile scramble */
+        a=Math.random()*.15+((k%cols)/cols)*.35; big=Math.random()<.55;
+        m.T.push({ph:Math.random(),on:a,lock:Math.min(.98,a+.25+Math.random()*.3),off:Math.random(),rx:Math.random()*2-1,ry:Math.random()*2-1,rs:.05+Math.random()*((big?.9:.3)-.05),rsy:.05+Math.random()*((big?.7:.2)-.05),amp:big?1:.5,until:0,next:0,jx:0,jy:0,jsx:1,jsy:1});
+      }
       return true;
     }
-    function pixDraw(m,lvl,ap,q,now){   /* lvl: 0 sharp … 1 coarsest; ap: appearing 0…1 (2 = done); q: closing 0…1 */
-      var x=m.cx, W2=m.cv.width, H2=m.cv.height, cols=m.cols, rows=m.rows, im=m.img, cr=m.crop, cw=cr.sw/cols, ch=cr.sh/rows, tq=Math.floor(now/80), r, c, k, x0, x1, y0, y1, s, f;
-      x.clearRect(0,0,W2,H2);
+    function splitDraw(m,a,ap,q,now){   /* a: 0 in the centre … 1 beside it; ap: appearing 0…1 (2 = done); q: closing 0…1 */
+      var x=m.cx, im=m.img, nw=im.naturalWidth, nh=im.naturalHeight, cr=m.crop, W2=m.cv.width, H2=m.cv.height, cols=m.cols, rows=m.rows, tw=m.w/cols, th=m.h/rows,
+          ox=cr.fx*nw, oy=cr.fy*nh, kx=cr.fw*nw/m.w, ky=cr.fh*nh/m.h, tq=Math.floor(now/80), first=m.pi===null, r, c, k, t, inf, x0, x1, y0, y1, dx, dy, sx, sy, qw, qh, qx, qy;
+      if(first) m.pi=[]; m.scr=0;
+      x.clearRect(0,0,W2,H2); x.imageSmoothingEnabled=true;
       for(r=0;r<rows;r++) for(c=0;c<cols;c++){
-        k=r*cols+c; if(q>0&&m.off[k]<q) continue;                          /* closing: the tiles switch off in a random order */
+        k=r*cols+c; t=m.T[k];
+        inf=Math.max(0,Math.min(1,(a-t.ph*.5)/.5));                        /* how far this tile is split */
+        if(!first&&ap>=1&&q===0&&inf>.45&&m.pi[k]<=.45&&Math.random()<.6){ t.until=now+150+Math.random()*150; t.next=0; }   /* a tile that starts to split jumps for a moment, like on the card hover */
+        m.pi[k]=inf;
+        if(q>0&&t.off<q) continue;                                          /* closing: the tiles switch off in a random order */
         x0=Math.round(c*W2/cols); x1=Math.round((c+1)*W2/cols); y0=Math.round(r*H2/rows); y1=Math.round((r+1)*H2/rows);
         if(ap<1){
-          if(ap<m.on[k]) continue;                                         /* appearing: tiles switch on in a loose left-to-right sweep, */
-          if(ap<m.lock[k]){ x.imageSmoothingEnabled=true; x.drawImage(im,cr.sx+hashN(k*3.1+tq*7.7)*(cr.sw-cw),cr.sy+hashN(k*5.3+tq*2.9)*(cr.sh-ch),cw,ch,x0,y0,x1-x0,y1-y0); continue; }   /* flicker through random fragments, then lock */
+          if(ap<t.on) continue;                                             /* appearing: tiles switch on in a loose left-to-right sweep, */
+          if(ap<t.lock){ qx=ox+hashN(k*3.1+tq*7.7)*(cr.fw*nw-tw*kx); qy=oy+hashN(k*5.3+tq*2.9)*(cr.fh*nh-th*ky); x.drawImage(im,qx,qy,tw*kx,th*ky,x0,y0,x1-x0,y1-y0); continue; }   /* flicker through random fragments, then lock */
         }
-        s=Math.round(Math.max(0,Math.min(1,(lvl-m.ph[k]*.5)/.5))*4);
-        if(s===0){ x.imageSmoothingEnabled=true; x.drawImage(im,cr.sx+c*cw,cr.sy+r*ch,cw,ch,x0,y0,x1-x0,y1-y0); }
-        else { f=8>>(s-1); x.imageSmoothingEnabled=false; x.drawImage(m.mip[s-1],c*f,r*f,f,f,x0,y0,x1-x0,y1-y0); }
+        if(now<t.until){
+          m.scr=1; if(now>=t.next){ t.jx=(Math.random()*2-1)*tw*.5; t.jy=(Math.random()*2-1)*th*.4; t.jsx=1+Math.random()*.3; t.jsy=1+Math.random()*.25; t.next=now+90+Math.random()*70; }
+          dx=t.jx; dy=t.jy; sx=t.jsx; sy=t.jsy;
+        } else { dx=t.rx*tw*.65*t.amp*inf; dy=t.ry*th*.55*t.amp*inf; sx=1+t.rs*.7*inf; sy=1+t.rsy*.7*inf; }
+        qw=tw/sx; qh=th/sy; qx=Math.min(m.w-qw,Math.max(0,(c+.5)*tw-(tw/2+dx)/sx)); qy=Math.min(m.h-qh,Math.max(0,(r+.5)*th-(th/2+dy)/sy));   /* the same window maths as the card hover */
+        x.drawImage(im,ox+qx*kx,oy+qy*ky,qw*kx,qh*ky,x0,y0,x1-x0,y1-y0);
       }
     }
 
@@ -389,7 +392,7 @@
         if(i&&m.ready){ if(far>=1) m.wasFar=true; else if(m.wasFar){ m.wasFar=false; if(g.tIn<now&&m.t0&&now>m.t0+900){ m.t0=now; g.animUntil=Math.max(g.animUntil,now+1000); } } }   /* an image coming into view appears with the tile scramble too */
         ap=!i||reduce||!m.t0?2:(now-m.t0)/900;                         /* appearing: 0…1 */
         pm=m.vis&&(a>.002||ap<1)&&ensureCv(m);                         /* grid split (canvas) unless it is sharp and in the centre */
-        if(pm){ key=Math.round(a*80)+"|"+(ap<1?Math.floor(now/16):"-")+"|"+Math.round(q*80); if(m.key!==key){ m.key=key; pixDraw(m,a,ap,q,now); } }
+        if(pm){ key=Math.round(a*80)+"|"+(ap<1||m.scr?Math.floor(now/16):"-")+"|"+Math.round(q*80); if(m.key!==key){ m.key=key; splitDraw(m,a,ap,q,now); } if(m.scr) g.animUntil=Math.max(g.animUntil,now+300); }
         var tr="translate("+x.toFixed(1)+"px,"+y.toFixed(1)+"px) scale("+s.toFixed(4)+")", z=20-Math.round(Math.min(d,3)*5), v=m.vis?"":"hidden";
         m.img.style.transform=tr; m.img.style.opacity=pm?0:op; m.img.style.zIndex=z;
         if(m.cv){ m.cv.style.transform=tr; m.cv.style.opacity=op; m.cv.style.zIndex=z+1; m.cv.style.display=pm?"block":"none"; }

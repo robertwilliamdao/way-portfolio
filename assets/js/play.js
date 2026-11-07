@@ -300,14 +300,22 @@
        come together tile by tile when dragged into the centre. They appear with a tile scramble when the pop-up opens. Drag sideways, press ← →, or click
        one of them to bring it to the centre. Closing happens from whichever image is on screen: it shrinks into the card and turns into the original
        (main) image on the way. A shot without `more` behaves exactly as before. */
-    var gal=null, gp=null, closing=false, skipClick=false, closeOn=false, NB=.5, NOP=.4, TILES=12;   /* NB: size of the images beside the main one (× the main); NOP: their opacity; TILES: tiles along the long side of an image that is grid split */
+    var gal=null, gp=null, closing=false, skipClick=false, closeOn=false, NB=.42, NOP=.4, TILES=12, SPLIT=1.8;   /* NB: size of the images beside the main one (× the main); NOP: their opacity; TILES: tiles along the long side of an image that is grid split; SPLIT: how hard the tiles are shifted and stretched (1 = the card hover) */
     function imgsOf(d){ var a=[d]; (d.more||[]).forEach(function(m){ if(m) a.push(typeof m==="string"?{src:m}:m); }); return a; }
     function fitW(g){ return g?W*(W<800?.72:.6):W*.88; }            /* a gallery leaves room on both sides of the main image */
     function box(c,g){ var bw=Math.min(fitW(g),H*.70*c.ar), bh=bw/c.ar; return {w:bw,h:bh,x:(W-bw)/2,y:(H-bh)/2-H*.04}; }
     function fly(r,b){ return "translate("+r.x+"px,"+r.y+"px) scale("+(r.w/b.w)+","+(r.h/b.h)+")"; }
-    /* "close" label that follows the mouse outside the images (same idea as the project pop-up on the home page) */
+    /* "close" label that follows the mouse outside the images: the same as in the project pop-up on the home page (size and colour in play.css, fade .15s,
+       the text scrambles in over .6s). On the home page the very same GSAP ScrambleText call is used; play.html on its own has no GSAP and uses the built-in scramble. */
+    function scrambleSite(el,text,dur){
+      var G=window.gsap;
+      if(!G||!G.plugins||!G.plugins.scrambleText){ scrambleTo(el,"c",text,0,dur); return; }
+      if(el._scr) el._scr.kill(); el.textContent=text;
+      var w=el.getBoundingClientRect().width; el.style.width=w+"px"; el.style.whiteSpace="nowrap"; el.style.overflow="visible";
+      el._scr=G.to(el,{duration:dur,scrambleText:{text:text,chars:SCR,revealDelay:.15,speed:.6},onComplete:function(){ el.style.width=""; el.style.whiteSpace=""; el.style.overflow=""; el._scr=null; }});
+    }
     function closeLabel(on,x,y){
-      if(on){ lbClose.style.transform="translate("+x+"px,"+y+"px) translate(-50%,-50%)"; if(closeOn) return; closeOn=true; lbClose.style.opacity=1; lb.classList.add("nocur"); scrambleTo(lbClose,"c","close",0,.6); }
+      if(on){ lbClose.style.transform="translate("+x+"px,"+y+"px) translate(-50%,-50%)"; if(closeOn) return; closeOn=true; lbClose.style.opacity=1; lb.classList.add("nocur"); scrambleSite(lbClose,"close",.6); }
       else if(closeOn){ closeOn=false; lbClose.style.opacity=0; lb.classList.remove("nocur"); }
     }
 
@@ -347,9 +355,9 @@
           if(ap<t.lock){ qx=ox+hashN(k*3.1+tq*7.7)*(cr.fw*nw-tw*kx); qy=oy+hashN(k*5.3+tq*2.9)*(cr.fh*nh-th*ky); x.drawImage(im,qx,qy,tw*kx,th*ky,x0,y0,x1-x0,y1-y0); continue; }   /* flicker through random fragments, then lock */
         }
         if(now<t.until){
-          m.scr=1; if(now>=t.next){ t.jx=(Math.random()*2-1)*tw*.5; t.jy=(Math.random()*2-1)*th*.4; t.jsx=1+Math.random()*.3; t.jsy=1+Math.random()*.25; t.next=now+90+Math.random()*70; }
+          m.scr=1; if(now>=t.next){ t.jx=(Math.random()*2-1)*tw*.5*SPLIT*.7; t.jy=(Math.random()*2-1)*th*.4*SPLIT*.7; t.jsx=1+Math.random()*.3; t.jsy=1+Math.random()*.25; t.next=now+90+Math.random()*70; }
           dx=t.jx; dy=t.jy; sx=t.jsx; sy=t.jsy;
-        } else { dx=t.rx*tw*.65*t.amp*inf; dy=t.ry*th*.55*t.amp*inf; sx=1+t.rs*.7*inf; sy=1+t.rsy*.7*inf; }
+        } else { dx=t.rx*tw*.65*t.amp*inf*SPLIT; dy=t.ry*th*.55*t.amp*inf*SPLIT; sx=1+t.rs*.7*inf*SPLIT; sy=1+t.rsy*.7*inf*SPLIT; }
         qw=tw/sx; qh=th/sy; qx=Math.min(m.w-qw,Math.max(0,(c+.5)*tw-(tw/2+dx)/sx)); qy=Math.min(m.h-qh,Math.max(0,(r+.5)*th-(th/2+dy)/sy));   /* the same window maths as the card hover */
         x.drawImage(im,ox+qx*kx,oy+qy*ky,qw*kx,qh*ky,x0,y0,x1-x0,y1-y0);
       }
@@ -377,7 +385,7 @@
     /* Layout: the images sit in one row (each scaled by its distance from gx, the continuous position being looked at), and the row is
        shifted so that gx is at the centre. gx is dragged by the pointer and eased to a whole number on release. */
     function galLayout(now){
-      var g=gal, it=g.items, n=it.length, gx=g.gx, G=Math.max(16,W*.05), cy=H/2-H*.04, xs=[0], sc=[], i, d;
+      var g=gal, it=g.items, n=it.length, gx=g.gx, G=Math.max(16,W*(W<800?.05:.08)), cy=H/2-H*.04, xs=[0], sc=[], i, d;
       for(i=0;i<n;i++){ d=Math.min(1,Math.abs(i-gx)); sc[i]=1-(1-NB)*d; }
       for(i=1;i<n;i++) xs[i]=xs[i-1]+(it[i-1].w*sc[i-1]+it[i].w*sc[i])/2+G;
       var unit=Math.max(80,(it[0].w+it[1].w*NB)/2+G), p, q=g.out?Math.min(1,(now-g.tOut)/350):0; g.unit=unit;

@@ -30,7 +30,7 @@
 #wayPlay .wp-sc::after{content:attr(data-s);position:absolute;left:0;top:0;width:100%;text-align:center;color:var(--c)}
 #wayPlay .wp-lb.in .wp-lbcap{opacity:1}
 /* Gallery (a shot with extra images, play.js): the main image is .wp-lbimg, the others are .wp-gimg. Position, scale and opacity are set by play.js on every frame.
-   .wp-close is the "close" label that follows the mouse outside the images (like the project pop-up on the home page; not shown on touch screens). */
+   .wp-close is the "close" label that follows the mouse outside the images, the same as .close-label of the project pop-up on the home page: 1.4rem of the site's fluid root size (that formula is repeated here because play.html has no style.css), line-height 1.28, letter-spacing -.015em, beige; not shown on touch screens. */
 #wayPlay .wp-lbimg,#wayPlay .wp-gimg{-webkit-user-drag:none;user-select:none}
 #wayPlay .wp-gimg{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;object-fit:cover;background:#1e1e1e;opacity:0;cursor:pointer}
 #wayPlay .wp-gcv{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;pointer-events:none;display:none}   /* the grid-split (pixel mosaic) layer of an image beside the main one */
@@ -39,6 +39,6 @@
 #wayPlay .wp-lb.gal .wp-lbimg{cursor:inherit}
 #wayPlay .wp-lb.gal.nocur{cursor:none}
 #wayPlay .wp-lbcap{z-index:40}
-#wayPlay .wp-close{position:absolute;left:0;top:0;z-index:60;pointer-events:none;color:#fffaee;--c:#fffaee;font:500 22.4px/1.28 "Switzer",system-ui,sans-serif;white-space:nowrap;opacity:0;transition:opacity .15s;will-change:transform}
+#wayPlay .wp-close{position:absolute;left:0;top:0;z-index:60;pointer-events:none;color:#fffaee;--c:#fffaee;font:500 calc(min(100vw / 151.2, 10px + (100vw - 1512px) * .45 / 151.2) * 1.4)/1.28 "Switzer",ui-sans-serif,system-ui,sans-serif;letter-spacing:-.015em;white-space:nowrap;opacity:0;transition:opacity .15s;will-change:transform}
 @media (hover:none){#wayPlay .wp-close{display:none}}
 @media (prefers-reduced-motion:reduce){#wayPlay .wp-lbimg{transition-duration:.01s}}

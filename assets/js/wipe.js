@@ -55,7 +55,8 @@
       if(/[?&]preview=1/.test(location.search)&&window.PLAY){   /* builder preview: unsaved shots + their unsaved images */
         try{
           var pv=JSON.parse(localStorage.getItem("way-preview")||"null"), m=(pv&&pv.map)||{};
-          if(pv&&pv.play){ window.PLAY=pv.play.filter(function(d){ return d.src; }); window.PLAY.forEach(function(d){ var p=d.src; d.thumb=m[p.replace(/-r\.webp$/,"-r-640.webp")]||m[p]||d.thumb; d.big=m[p.replace(/-r\.webp$/,"-r-1280.webp")]||m[p]||d.big; }); }
+          if(pv&&pv.play){ window.PLAY=pv.play.filter(function(d){ return d.src; }); window.PLAY.forEach(function(d){ var p=d.src; d.thumb=m[p.replace(/-r\.webp$/,"-r-640.webp")]||m[p]||d.thumb; d.big=m[p.replace(/-r\.webp$/,"-r-1280.webp")]||m[p]||d.big;
+            d.more=(d.more||[]).filter(Boolean).map(function(s){ return typeof s!=="string"?s:{src:s,thumb:m[s.replace(/-r\.webp$/,"-r-640.webp")]||m[s],big:m[s.replace(/-r\.webp$/,"-r-1280.webp")]||m[s]}; }); }); }
         }catch(e){}
       }
       if(window.WayPlay&&window.PLAY){

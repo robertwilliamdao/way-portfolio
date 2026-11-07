@@ -33,7 +33,8 @@
    .wp-close is the "close" label that follows the mouse outside the images (like the project pop-up on the home page; not shown on touch screens). */
 #wayPlay .wp-lbimg,#wayPlay .wp-gimg{-webkit-user-drag:none;user-select:none}
 #wayPlay .wp-gimg{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;object-fit:cover;background:#1e1e1e;opacity:0;cursor:pointer}
-#wayPlay .wp-lb.gal{cursor:grab;touch-action:none}
+#wayPlay .wp-gcv{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;pointer-events:none;display:none}   /* the grid-split (pixel mosaic) layer of an image beside the main one */
+#wayPlay .wp-lb.gal{cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none}   /* dragging must not highlight the text below */
 #wayPlay .wp-lb.gal.drag{cursor:grabbing}
 #wayPlay .wp-lb.gal .wp-lbimg{cursor:inherit}
 #wayPlay .wp-lb.gal.nocur{cursor:none}

@@ -295,10 +295,12 @@
 
     /* ---------- pop-up: the shot flies from the globe to the centre and back ---------- */
     /* A shot can carry more images: data `more` = [src, …] (the first image, src, is the main one). The pop-up is then a small gallery:
-       the main image in the centre, the others beside it — half its size, far from it and faded. They slide in from the right when the
-       pop-up opens. Drag sideways, press ← →, or click one of them to bring it to the centre. Closing happens from whichever image is on
-       screen: it shrinks into the card and turns into the original (main) image on the way. A shot without `more` behaves exactly as before. */
-    var gal=null, gp=null, closing=false, skipClick=false, closeOn=false, NB=.5, NOP=.4;   /* NB: size of the images beside the main one (× the main); NOP: their opacity */
+       the main image in the centre, the others beside it — half its size, far from it and faded. Only the image in the spotlight (the centre)
+       is sharp: the others are "grid split", i.e. a low-res pixel mosaic made of the same kind of tiles as the loader and the card hover, and they
+       resolve tile by tile when dragged into the centre. They appear with a tile scramble when the pop-up opens. Drag sideways, press ← →, or click
+       one of them to bring it to the centre. Closing happens from whichever image is on screen: it shrinks into the card and turns into the original
+       (main) image on the way. A shot without `more` behaves exactly as before. */
+    var gal=null, gp=null, closing=false, skipClick=false, closeOn=false, NB=.5, NOP=.4, PIX=20;   /* NB: size of the images beside the main one (× the main); NOP: their opacity; PIX: pixels along the long side of a grid-split image */
     function imgsOf(d){ var a=[d]; (d.more||[]).forEach(function(m){ if(m) a.push(typeof m==="string"?{src:m}:m); }); return a; }
     function fitW(g){ return g?W*(W<800?.72:.6):W*.88; }            /* a gallery leaves room on both sides of the main image */
     function box(c,g){ var bw=Math.min(fitW(g),H*.70*c.ar), bh=bw/c.ar; return {w:bw,h:bh,x:(W-bw)/2,y:(H-bh)/2-H*.04}; }
@@ -309,23 +311,64 @@
       else if(closeOn){ closeOn=false; lbClose.style.opacity=0; lb.classList.remove("nocur"); }
     }
 
+    /* Grid split: an image beside the main one is drawn on a canvas as a grid of tiles. Each tile is either the sharp image, or a block of a pixel mosaic
+       (mips of 8x8, 4x4, 2x2 or 1 pixel per tile). Which one depends on how far the image is from the centre, with a random offset per tile, so a
+       moving image gets sharper (or coarser) tile by tile, not all at once. */
+    function coverCrop(im,ratio,pos){   /* the part of the image that object-fit:cover shows in a box of this ratio */
+      var nw=im.naturalWidth, nh=im.naturalHeight, sw, sh;
+      if(nw/nh>ratio){ sh=nh; sw=nh*ratio; } else { sw=nw; sh=nw/ratio; }
+      return {sx:(nw-sw)*pos[0], sy:(nh-sh)*pos[1], sw:sw, sh:sh};
+    }
+    function mipFrom(src,cr,tw,th){     /* shrink by halves, so every small pixel is the average of its block */
+      var cur=src, sx=cr.sx, sy=cr.sy, sw=cr.sw, sh=cr.sh, t, c, x;
+      while(sw/2>tw&&sh/2>th){ t=document.createElement("canvas"); t.width=Math.max(tw,Math.round(sw/2)); t.height=Math.max(th,Math.round(sh/2)); t.getContext("2d").drawImage(cur,sx,sy,sw,sh,0,0,t.width,t.height); cur=t; sx=sy=0; sw=t.width; sh=t.height; }
+      c=document.createElement("canvas"); c.width=tw; c.height=th; x=c.getContext("2d"); x.imageSmoothingQuality="high"; x.drawImage(cur,sx,sy,sw,sh,0,0,tw,th); return c;
+    }
+    function ensureCv(m){
+      if(m.cv) return true; if(!m.img.naturalWidth) return false;
+      var S=Math.max(m.w,m.h)/PIX, cols=Math.max(4,Math.round(m.w/S)), rows=Math.max(3,Math.round(m.h/S)), d=Math.min(devicePixelRatio||1,1.5), cr=coverCrop(m.img,m.w/m.h,m.pos), n=cols*rows, k, a, b, top;
+      var cv=document.createElement("canvas"); cv.className="wp-gcv"; cv.width=Math.round(m.w*d); cv.height=Math.round(m.h*d); cv.style.width=m.w+"px"; cv.style.height=m.h+"px"; lb.insertBefore(cv,lbCap);
+      m.cv=cv; m.cx=cv.getContext("2d"); m.cols=cols; m.rows=rows; m.crop=cr; m.ph=[]; m.on=[]; m.lock=[]; m.off=[];
+      for(k=0;k<n;k++){ a=Math.random()*.15+((k%cols)/cols)*.35; m.ph.push(Math.random()); m.on.push(a); m.lock.push(Math.min(.98,a+.25+Math.random()*.3)); m.off.push(Math.random()); }   /* the same timing recipe as the loader's tile scramble */
+      top=mipFrom(m.img,cr,cols*8,rows*8); m.mip=[top];
+      b=mipFrom(top,{sx:0,sy:0,sw:top.width,sh:top.height},cols*4,rows*4); m.mip.push(b);
+      a=mipFrom(b,{sx:0,sy:0,sw:b.width,sh:b.height},cols*2,rows*2); m.mip.push(a);
+      b=mipFrom(a,{sx:0,sy:0,sw:a.width,sh:a.height},cols,rows); m.mip.push(b);
+      return true;
+    }
+    function pixDraw(m,lvl,ap,q,now){   /* lvl: 0 sharp … 1 coarsest; ap: appearing 0…1 (2 = done); q: closing 0…1 */
+      var x=m.cx, W2=m.cv.width, H2=m.cv.height, cols=m.cols, rows=m.rows, im=m.img, cr=m.crop, cw=cr.sw/cols, ch=cr.sh/rows, tq=Math.floor(now/80), r, c, k, x0, x1, y0, y1, s, f;
+      x.clearRect(0,0,W2,H2);
+      for(r=0;r<rows;r++) for(c=0;c<cols;c++){
+        k=r*cols+c; if(q>0&&m.off[k]<q) continue;                          /* closing: the tiles switch off in a random order */
+        x0=Math.round(c*W2/cols); x1=Math.round((c+1)*W2/cols); y0=Math.round(r*H2/rows); y1=Math.round((r+1)*H2/rows);
+        if(ap<1){
+          if(ap<m.on[k]) continue;                                         /* appearing: tiles switch on in a loose left-to-right sweep, */
+          if(ap<m.lock[k]){ x.imageSmoothingEnabled=true; x.drawImage(im,cr.sx+hashN(k*3.1+tq*7.7)*(cr.sw-cw),cr.sy+hashN(k*5.3+tq*2.9)*(cr.sh-ch),cw,ch,x0,y0,x1-x0,y1-y0); continue; }   /* flicker through random fragments, then lock */
+        }
+        s=Math.round(Math.max(0,Math.min(1,(lvl-m.ph[k]*.5)/.5))*4);
+        if(s===0){ x.imageSmoothingEnabled=true; x.drawImage(im,cr.sx+c*cw,cr.sy+r*ch,cw,ch,x0,y0,x1-x0,y1-y0); }
+        else { f=8>>(s-1); x.imageSmoothingEnabled=false; x.drawImage(m.mip[s-1],c*f,r*f,f,f,x0,y0,x1-x0,y1-y0); }
+      }
+    }
+
     function sizeItem(m){ var bw=Math.min(fitW(true),H*.70*m.ar), bh=bw/m.ar; m.w=bw; m.h=bh; m.img.style.width=bw+"px"; m.img.style.height=bh+"px"; }
     function galOpen(c){
       var list=imgsOf(c.d), now=performance.now();
-      var g=gal={items:[],gx:0,target:0,unit:300,drag:false,out:false,taken:false,dirty:true,last:now,tIn:now+300,tOut:0,land:now+620,hk:0,pre:-1,wacc:0,wlock:0,raf:0};
+      var g=gal={items:[],gx:0,target:0,unit:300,drag:false,out:false,taken:false,dirty:true,last:now,tIn:now+300,tOut:0,land:now+620,animUntil:now+1500,hk:0,pre:-1,wacc:0,wlock:0,raf:0};
       list.forEach(function(o,k){
-        var m={o:o,k:k,ar:k?.8:c.ar,ready:!k,born:0,big:!k,vis:false,rect:null};
+        var m={o:o,k:k,ar:k?.8:c.ar,ready:!k,born:0,big:!k,vis:false,rect:null,pos:k?[.5,.5]:(c.d.pos||[.5,.5]),t0:0,wasFar:true,cv:null,key:""};
         if(k){ m.img=document.createElement("img"); m.img.className="wp-gimg"; m.img.alt=""; lb.insertBefore(m.img,lbCap); } else m.img=lbImg;
         m.img.draggable=false; g.items.push(m); sizeItem(m);
         if(k){ m.img.style.opacity=0;
-          m.img.onload=m.img.onerror=function(){ if(gal!==g) return; var nw=m.img.naturalWidth, nh=m.img.naturalHeight; m.ar=nw&&nh?Math.max(.35,Math.min(3,nw/nh)):.8; sizeItem(m); m.ready=true; m.born=performance.now(); g.dirty=true; };   /* a file that fails to load still gets a (dark) slot */
+          m.img.onload=m.img.onerror=function(){ if(gal!==g) return; var nw=m.img.naturalWidth, nh=m.img.naturalHeight; m.ar=nw&&nh?Math.max(.35,Math.min(3,nw/nh)):.8; sizeItem(m); m.ready=true; m.born=performance.now(); m.t0=Math.max(g.tIn+(k-1)*90,m.born); g.animUntil=Math.max(g.animUntil,m.t0+1000); g.dirty=true; };   /* a file that fails to load still gets a (dark) slot */
           m.img.src=tUrl(o); }
       });
       lb.classList.add("gal"); g.raf=requestAnimationFrame(galLoop);
     }
     function galClose(){
       var g=gal; if(!g) return; cancelAnimationFrame(g.raf); gal=null; gp=null; closeLabel(false);
-      g.items.forEach(function(m,k){ if(k){ m.img.onload=m.img.onerror=null; m.img.remove(); } });
+      g.items.forEach(function(m,k){ if(m.cv) m.cv.remove(); if(k){ m.img.onload=m.img.onerror=null; m.img.remove(); } });
       lbImg.style.zIndex=""; lbImg.style.visibility=""; lb.classList.remove("gal","drag");
     }
     /* Layout: the images sit in one row (each scaled by its distance from gx, the continuous position being looked at), and the row is
@@ -334,19 +377,23 @@
       var g=gal, it=g.items, n=it.length, gx=g.gx, G=Math.max(16,W*.05), cy=H/2-H*.04, xs=[0], sc=[], i, d;
       for(i=0;i<n;i++){ d=Math.min(1,Math.abs(i-gx)); sc[i]=1-(1-NB)*d; }
       for(i=1;i<n;i++) xs[i]=xs[i-1]+(it[i-1].w*sc[i-1]+it[i].w*sc[i])/2+G;
-      var unit=Math.max(80,(it[0].w+it[1].w*NB)/2+G), p; g.unit=unit;
+      var unit=Math.max(80,(it[0].w+it[1].w*NB)/2+G), p, q=g.out?Math.min(1,(now-g.tOut)/350):0; g.unit=unit;
       if(gx<=0) p=gx*unit; else if(gx>=n-1) p=xs[n-1]+(gx-(n-1))*unit; else { var i0=Math.floor(gx); p=xs[i0]+(xs[i0+1]-xs[i0])*(gx-i0); }
-      var D=reduce?0:Math.min(W*.12,180), q=g.out?Math.min(1,(now-g.tOut)/350):0;     /* D: how far from the right the others slide in; q: they slide back and fade when closing */
       for(i=0;i<n;i++){
-        var m=it[i], a, far, s, ei, op, x, y; d=Math.abs(i-gx); a=Math.min(1,d); far=Math.max(0,Math.min(1,d-1));
-        ei=i?Math.max(0,Math.min(1,(now-g.tIn-(i-1)*90)/900)):1; ei=1-Math.pow(1-ei,3);   /* intro: one after the other, easing out */
-        s=sc[i]; op=(1-(1-NOP)*a)*(1-far)*ei*(1-q);
-        if(i){ op=m.ready?op*Math.min(1,(now-m.born)/320):0; }
-        x=W/2+(xs[i]-p)+D*((1-ei)+q)-m.w*s/2; y=cy-m.h*s/2; m.rect={x:x,y:y,w:m.w*s,h:m.h*s}; m.vis=op>.02&&(i>0||g.taken);
+        var m=it[i], a, far, s, op, x, y, ap, pm, key;
+        d=Math.abs(i-gx); a=Math.min(1,d); far=Math.max(0,Math.min(1,d-1));
+        s=sc[i]; op=(1-(1-NOP)*a)*(1-far); if(i&&!m.ready) op=0;
+        x=W/2+(xs[i]-p)-m.w*s/2; y=cy-m.h*s/2; m.rect={x:x,y:y,w:m.w*s,h:m.h*s}; m.vis=op>.02&&(i>0||g.taken);
         if(i===0&&(!g.taken||g.out)) continue;                         /* the main image is still flying in / is already flying back (CSS transition) */
         if(g.out&&i===g.hk) continue;                                  /* ... and so is the image the pop-up is being closed from */
+        if(i&&m.ready){ if(far>=1) m.wasFar=true; else if(m.wasFar){ m.wasFar=false; if(g.tIn<now&&m.t0&&now>m.t0+900){ m.t0=now; g.animUntil=Math.max(g.animUntil,now+1000); } } }   /* an image coming into view appears with the tile scramble too */
+        ap=!i||reduce||!m.t0?2:(now-m.t0)/900;                         /* appearing: 0…1 */
+        pm=m.vis&&(a>.002||ap<1)&&ensureCv(m);                         /* grid split (canvas) unless it is sharp and in the centre */
+        if(pm){ key=Math.round(a*80)+"|"+(ap<1?Math.floor(now/16):"-")+"|"+Math.round(q*80); if(m.key!==key){ m.key=key; pixDraw(m,a,ap,q,now); } }
         var tr="translate("+x.toFixed(1)+"px,"+y.toFixed(1)+"px) scale("+s.toFixed(4)+")", z=20-Math.round(Math.min(d,3)*5), v=m.vis?"":"hidden";
-        m.img.style.transform=tr; m.img.style.opacity=op; m.img.style.zIndex=z; if(m.v!==v){ m.v=v; m.img.style.visibility=v; }
+        m.img.style.transform=tr; m.img.style.opacity=pm?0:op; m.img.style.zIndex=z;
+        if(m.cv){ m.cv.style.transform=tr; m.cv.style.opacity=op; m.cv.style.zIndex=z+1; m.cv.style.display=pm?"block":"none"; }
+        if(m.v!==v){ m.v=v; m.img.style.visibility=v; if(m.cv) m.cv.style.visibility=v; }
       }
     }
     function want(k){ var g=gal, m=g&&g.items[k]; if(!m||m.big) return; m.big=true; var im=new Image(); im.onload=function(){ if(gal===g) m.img.src=im.src; }; im.src=bUrl(m.o); }
@@ -361,7 +408,7 @@
       var dt=Math.max(.001,Math.min(.05,(now-g.last)/1000)), moved=false; g.last=now;
       if(!g.taken&&!g.out&&now>=g.land){ g.taken=true; lbImg.style.transition="none"; g.dirty=true; }
       if(!g.drag&&g.gx!==g.target){ g.gx+=(g.target-g.gx)*(1-Math.exp(-dt*(reduce?60:7))); if(Math.abs(g.target-g.gx)<.0008) g.gx=g.target; moved=true; }   /* a soft slide */
-      if(g.dirty||moved||g.drag||now<g.tIn+g.items.length*90+1000||(g.out&&now<g.tOut+400)){ g.dirty=false; galLayout(now); }
+      if(g.dirty||moved||g.drag||now<g.animUntil||(g.out&&now<g.tOut+400)){ g.dirty=false; galLayout(now); }
       if(!g.drag&&g.gx===g.target&&!g.out&&g.pre!==g.target){ g.pre=g.target; want(g.target+1); want(g.target-1); }   /* once settled, fetch the sharp copies of the next ones */
     }
 
@@ -386,11 +433,14 @@
       if(g){
         var k=Math.round(g.gx), hk=g.items[k], hr=hk.rect; g.out=true; g.tOut=performance.now(); g.hk=k; g.dirty=true;
         lbImg.style.filter=""; lbImg.style.visibility=""; lbImg.style.zIndex="";
+        if(g.items[0].cv) g.items[0].cv.style.display="none"; if(hk.cv) hk.cv.style.display="none";
         if(k){   /* closing from another image: it shrinks into the card while the original (main) image fades in over it */
           var s0=Math.sqrt(hr.w*hr.h/(b.w*b.h)), cx=hr.x+hr.w/2, cy=hr.y+hr.h/2;
           lbImg.style.transition="none"; lbImg.style.opacity=0; lbImg.style.transform="translate("+(cx-b.w*s0/2)+"px,"+(cy-b.h*s0/2)+"px) scale("+s0+")";
+          hk.img.style.transition="none"; hk.img.style.visibility=""; hk.img.style.opacity=1;
+          void lbImg.offsetWidth;
           hk.img.style.transition="transform .6s cubic-bezier(.16,.84,.3,1),opacity .4s ease-in .1s"; hk.img.style.transform=fly(r,{w:hk.w,h:hk.h}); hk.img.style.opacity=0;
-          void lbImg.offsetWidth; lbImg.style.transition="transform .6s cubic-bezier(.16,.84,.3,1),opacity .45s ease-out";
+          lbImg.style.transition="transform .6s cubic-bezier(.16,.84,.3,1),opacity .45s ease-out";
         } else { lbImg.style.transition=""; void lbImg.offsetWidth; }
       }
       lbImg.style.opacity=c.fog; lbImg.style.transform=fly(r,b);

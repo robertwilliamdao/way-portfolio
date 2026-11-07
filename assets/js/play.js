@@ -13,7 +13,7 @@
     '<div class="wp-bar wp-top"><a href="index.html" class="wp-back">Back</a></div>'+
     '<div class="wp-bar wp-bot"><span class="wp-cap">Play around</span>'+
     '<div class="wp-zoom"><button class="wp-zo" aria-label="Zoom out">−</button><button class="wp-zi" aria-label="Zoom in">+</button></div></div>'+
-    '<div class="wp-lb"><img class="wp-lbimg" alt=""><div class="wp-lbcap"><b></b><span></span></div></div>';
+    '<div class="wp-lb"><img class="wp-lbimg" alt=""><div class="wp-lbcap"><b></b><span></span></div><div class="wp-close"></div></div>';
 
   function mount(root,opt){
     opt=opt||{};
@@ -21,7 +21,7 @@
     if(!N) return null;
     root.innerHTML=TEMPLATE;
     var $=function(s){ return root.querySelector(s); };
-    var cv=$(".wp-gl"), lb=$(".wp-lb"), lbImg=$(".wp-lbimg"), lbCap=$(".wp-lbcap"), lbH=$(".wp-lbcap>b"), lbP=$(".wp-lbcap>span");
+    var cv=$(".wp-gl"), lb=$(".wp-lb"), lbImg=$(".wp-lbimg"), lbCap=$(".wp-lbcap"), lbH=$(".wp-lbcap>b"), lbP=$(".wp-lbcap>span"), lbClose=$(".wp-close");
     var thumbOf=function(s){ return s.replace(/-r\.webp$/,"-r-640.webp"); }, bigOf=function(s){ return s.replace(/-r\.webp$/,"-r-1280.webp"); };
     var BLANK=(function(){ var c=document.createElement("canvas"); c.width=c.height=1; var x=c.getContext("2d"); x.fillStyle="#1e1e1e"; x.fillRect(0,0,1,1); return c.toDataURL(); })();   /* a shot without an image yet */
     var tUrl=function(d){ return d.thumb||(d.src?thumbOf(d.src):BLANK); }, bUrl=function(d){ return d.big||(d.src?bigOf(d.src):BLANK); };
@@ -295,76 +295,62 @@
 
     /* ---------- pop-up: the shot flies from the globe to the centre and back ---------- */
     /* A shot can carry more images: data `more` = [src, …] (the first image, src, is the main one). The pop-up is then a small gallery:
-       the main image in the centre, the others beside it — smaller, blurred and glitching. Drag sideways, press ← →, or click one of
-       them to bring it to the centre. A shot without `more` behaves exactly as before. */
-    var gal=null, gp=null, closing=false, skipClick=false, NB=.56;   /* NB: scale of the images beside the main one */
+       the main image in the centre, the others beside it — half its size, far from it and faded. They slide in from the right when the
+       pop-up opens. Drag sideways, press ← →, or click one of them to bring it to the centre. Closing happens from whichever image is on
+       screen: it shrinks into the card and turns into the original (main) image on the way. A shot without `more` behaves exactly as before. */
+    var gal=null, gp=null, closing=false, skipClick=false, closeOn=false, NB=.5, NOP=.4;   /* NB: size of the images beside the main one (× the main); NOP: their opacity */
     function imgsOf(d){ var a=[d]; (d.more||[]).forEach(function(m){ if(m) a.push(typeof m==="string"?{src:m}:m); }); return a; }
     function fitW(g){ return g?W*(W<800?.72:.6):W*.88; }            /* a gallery leaves room on both sides of the main image */
     function box(c,g){ var bw=Math.min(fitW(g),H*.70*c.ar), bh=bw/c.ar; return {w:bw,h:bh,x:(W-bw)/2,y:(H-bh)/2-H*.04}; }
     function fly(r,b){ return "translate("+r.x+"px,"+r.y+"px) scale("+(r.w/b.w)+","+(r.h/b.h)+")"; }
+    /* "close" label that follows the mouse outside the images (same idea as the project pop-up on the home page) */
+    function closeLabel(on,x,y){
+      if(on){ lbClose.style.transform="translate("+x+"px,"+y+"px) translate(-50%,-50%)"; if(closeOn) return; closeOn=true; lbClose.style.opacity=1; lb.classList.add("nocur"); scrambleTo(lbClose,"c","close",0,.6); }
+      else if(closeOn){ closeOn=false; lbClose.style.opacity=0; lb.classList.remove("nocur"); }
+    }
 
-    function sizeItem(m){ var bw=Math.min(fitW(true),H*.70*m.ar), bh=bw/m.ar; m.w=bw; m.h=bh; [m.img,m.gs].forEach(function(e){ e.style.width=bw+"px"; e.style.height=bh+"px"; }); }
+    function sizeItem(m){ var bw=Math.min(fitW(true),H*.70*m.ar), bh=bw/m.ar; m.w=bw; m.h=bh; m.img.style.width=bw+"px"; m.img.style.height=bh+"px"; }
     function galOpen(c){
-      var list=imgsOf(c.d), pos=c.d.pos||[.5,.5], now=performance.now();
-      var g=gal={items:[],gx:0,target:0,px:0,sl:0,unit:300,spread:0,drag:false,out:false,taken:false,dirty:true,last:now,tIn:now+260,land:now+620,nextG:now+200,pre:-1,wacc:0,wlock:0,onSettle:null,raf:0};
+      var list=imgsOf(c.d), now=performance.now();
+      var g=gal={items:[],gx:0,target:0,unit:300,drag:false,out:false,taken:false,dirty:true,last:now,tIn:now+300,tOut:0,land:now+620,hk:0,pre:-1,wacc:0,wlock:0,raf:0};
       list.forEach(function(o,k){
-        var m={o:o,k:k,ar:k?.8:c.ar,ready:!k,born:0,burst:0,lvl:0,big:!k,vis:false,rect:null,sOn:false};
+        var m={o:o,k:k,ar:k?.8:c.ar,ready:!k,born:0,big:!k,vis:false,rect:null};
         if(k){ m.img=document.createElement("img"); m.img.className="wp-gimg"; m.img.alt=""; lb.insertBefore(m.img,lbCap); } else m.img=lbImg;
-        m.img.draggable=false;
-        m.gs=document.createElement("div"); m.gs.className="wp-gs"; m.sl=[];
-        for(var s=0;s<3;s++){ var im=new Image(); im.alt=""; im.draggable=false; im.src=tUrl(o); if(!k) im.style.objectPosition=(pos[0]*100)+"% "+(pos[1]*100)+"%"; m.gs.appendChild(im); m.sl.push(im); }
-        m.gs.style.opacity=0; lb.insertBefore(m.gs,lbCap); g.items.push(m); sizeItem(m);
+        m.img.draggable=false; g.items.push(m); sizeItem(m);
         if(k){ m.img.style.opacity=0;
-          m.img.onload=m.img.onerror=function(){ if(gal!==g) return; var nw=m.img.naturalWidth, nh=m.img.naturalHeight; m.ar=nw&&nh?Math.max(.35,Math.min(3,nw/nh)):.8; sizeItem(m); m.ready=true; m.born=performance.now(); m.burst=1; g.dirty=true; };   /* a file that fails to load still gets a (dark) slot */
+          m.img.onload=m.img.onerror=function(){ if(gal!==g) return; var nw=m.img.naturalWidth, nh=m.img.naturalHeight; m.ar=nw&&nh?Math.max(.35,Math.min(3,nw/nh)):.8; sizeItem(m); m.ready=true; m.born=performance.now(); g.dirty=true; };   /* a file that fails to load still gets a (dark) slot */
           m.img.src=tUrl(o); }
       });
       lb.classList.add("gal"); g.raf=requestAnimationFrame(galLoop);
     }
     function galClose(){
-      var g=gal; if(!g) return; cancelAnimationFrame(g.raf); gal=null; gp=null;
-      g.items.forEach(function(m,k){ m.gs.remove(); if(k){ m.img.onload=m.img.onerror=null; m.img.remove(); } });
-      lbImg.style.filter=""; lbImg.style.zIndex=""; lbImg.style.visibility=""; lb.classList.remove("gal","drag");
+      var g=gal; if(!g) return; cancelAnimationFrame(g.raf); gal=null; gp=null; closeLabel(false);
+      g.items.forEach(function(m,k){ if(k){ m.img.onload=m.img.onerror=null; m.img.remove(); } });
+      lbImg.style.zIndex=""; lbImg.style.visibility=""; lb.classList.remove("gal","drag");
     }
     /* Layout: the images sit in one row (each scaled by its distance from gx, the continuous position being looked at), and the row is
        shifted so that gx is at the centre. gx is dragged by the pointer and eased to a whole number on release. */
     function galLayout(now){
-      var g=gal, it=g.items, n=it.length, gx=g.gx, G=Math.max(14,W*.014), cy=H/2-H*.04, xs=[0], sc=[], i, d;
+      var g=gal, it=g.items, n=it.length, gx=g.gx, G=Math.max(16,W*.05), cy=H/2-H*.04, xs=[0], sc=[], i, d;
       for(i=0;i<n;i++){ d=Math.min(1,Math.abs(i-gx)); sc[i]=1-(1-NB)*d; }
       for(i=1;i<n;i++) xs[i]=xs[i-1]+(it[i-1].w*sc[i-1]+it[i].w*sc[i])/2+G;
       var unit=Math.max(80,(it[0].w+it[1].w*NB)/2+G), p; g.unit=unit;
       if(gx<=0) p=gx*unit; else if(gx>=n-1) p=xs[n-1]+(gx-(n-1))*unit; else { var i0=Math.floor(gx); p=xs[i0]+(xs[i0+1]-xs[i0])*(gx-i0); }
-      var e=1-Math.pow(1-Math.min(1,g.spread),3);                      /* intro / outro: the others slide out from behind the main image */
+      var D=reduce?0:Math.min(W*.12,180), q=g.out?Math.min(1,(now-g.tOut)/350):0;     /* D: how far from the right the others slide in; q: they slide back and fade when closing */
       for(i=0;i<n;i++){
-        var m=it[i], a, far, s, cx, op, x, y; d=Math.abs(i-gx); a=Math.min(1,d); far=Math.max(0,Math.min(1,d-1));
-        s=sc[i]*(1-(1-e)*.3*a); cx=W/2+(xs[i]-p)*e; op=(1-.42*a)*(1-far)*(1-(1-e)*a);
+        var m=it[i], a, far, s, ei, op, x, y; d=Math.abs(i-gx); a=Math.min(1,d); far=Math.max(0,Math.min(1,d-1));
+        ei=i?Math.max(0,Math.min(1,(now-g.tIn-(i-1)*90)/900)):1; ei=1-Math.pow(1-ei,3);   /* intro: one after the other, easing out */
+        s=sc[i]; op=(1-(1-NOP)*a)*(1-far)*ei*(1-q);
         if(i){ op=m.ready?op*Math.min(1,(now-m.born)/320):0; }
-        x=cx-m.w*s/2; y=cy-m.h*s/2; m.rect={x:x,y:y,w:m.w*s,h:m.h*s}; m.vis=op>.02&&(i>0||g.taken);
-        m.lvl=reduce?0:Math.max(m.burst,a*.5*e,g.sl*.8);                /* glitch level: always a little beside the main image, more while moving */
+        x=W/2+(xs[i]-p)+D*((1-ei)+q)-m.w*s/2; y=cy-m.h*s/2; m.rect={x:x,y:y,w:m.w*s,h:m.h*s}; m.vis=op>.02&&(i>0||g.taken);
         if(i===0&&(!g.taken||g.out)) continue;                         /* the main image is still flying in / is already flying back (CSS transition) */
-        var tr="translate("+x.toFixed(1)+"px,"+y.toFixed(1)+"px) scale("+s.toFixed(4)+")", z=20-Math.round(Math.min(d,3)*5), bl=a>.02?"blur("+(a*5/s).toFixed(1)+"px)":"none", v=m.vis?"":"hidden";
-        m.img.style.transform=tr; m.gs.style.transform=tr; m.img.style.opacity=op; m.gs.style.opacity=op; m.img.style.zIndex=z; m.gs.style.zIndex=z+1;
-        if(m.bl!==bl){ m.bl=bl; m.img.style.filter=bl; } if(m.v!==v){ m.v=v; m.img.style.visibility=v; m.gs.style.visibility=v; }
+        if(g.out&&i===g.hk) continue;                                  /* ... and so is the image the pop-up is being closed from */
+        var tr="translate("+x.toFixed(1)+"px,"+y.toFixed(1)+"px) scale("+s.toFixed(4)+")", z=20-Math.round(Math.min(d,3)*5), v=m.vis?"":"hidden";
+        m.img.style.transform=tr; m.img.style.opacity=op; m.img.style.zIndex=z; if(m.v!==v){ m.v=v; m.img.style.visibility=v; }
       }
     }
-    /* Glitch: now and then a few horizontal strips of the (sharp) image jump sideways over the blurred one */
-    function hideSl(m){ if(m.sOn){ m.sOn=false; m.sl.forEach(function(s){ s.style.display="none"; }); } }
-    function galGlitch(g){
-      g.items.forEach(function(m){
-        var l=m.lvl; if(reduce||!m.vis||!m.ready||l<.04||Math.random()>.2+.65*l){ hideSl(m); return; }
-        m.sOn=true;
-        m.sl.forEach(function(s,i){
-          if(i&&Math.random()>.3+.5*l){ s.style.display="none"; return; }
-          var t=Math.random()*92, hh=2+Math.random()*(5+14*l), dx=(Math.random()-.5)*2*m.w*(.015+.075*l);
-          s.style.display="block"; s.style.clipPath="inset("+t.toFixed(1)+"% 0 "+Math.max(0,100-t-hh).toFixed(1)+"% 0)"; s.style.transform="translateX("+dx.toFixed(1)+"px)";
-        });
-      });
-    }
     function want(k){ var g=gal, m=g&&g.items[k]; if(!m||m.big) return; m.big=true; var im=new Image(); im.onload=function(){ if(gal===g) m.img.src=im.src; }; im.src=bUrl(m.o); }
-    function setTarget(t){
-      var g=gal; if(!g) return; t=Math.max(0,Math.min(g.items.length-1,t));
-      if(t!==g.target){ g.items[g.target].burst=Math.max(g.items[g.target].burst,.55); g.items[t].burst=Math.max(g.items[t].burst,.85); }
-      g.target=t; g.dirty=true; want(t);
-    }
+    function setTarget(t){ var g=gal; if(!g) return; g.target=Math.max(0,Math.min(g.items.length-1,t)); g.dirty=true; want(g.target); }
     function go(d){ if(gal&&!gal.out&&!closing) setTarget(Math.round(gal.target)+d); }
     function galHit(x,y){
       var g=gal, best=-1, bd=9; g.items.forEach(function(m,k){ var r=m.rect; if(r&&m.vis&&x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h){ var d=Math.abs(k-g.gx); if(d<bd){ bd=d; best=k; } } });
@@ -372,18 +358,11 @@
     }
     function galLoop(now){
       var g=gal; if(!g) return; g.raf=requestAnimationFrame(galLoop);
-      var dt=Math.max(.001,Math.min(.05,(now-g.last)/1000)), moved=false, sp0=g.spread, bursting=false; g.last=now;
+      var dt=Math.max(.001,Math.min(.05,(now-g.last)/1000)), moved=false; g.last=now;
       if(!g.taken&&!g.out&&now>=g.land){ g.taken=true; lbImg.style.transition="none"; g.dirty=true; }
-      var tgt=g.out?0:(now>=g.tIn?1:0); g.spread+=(tgt-g.spread)*(1-Math.exp(-dt*(g.out?10:6))); if(Math.abs(tgt-g.spread)<.002) g.spread=tgt;
-      if(!g.drag&&g.gx!==g.target){ g.gx+=(g.target-g.gx)*(1-Math.exp(-dt*(reduce?60:11))); if(Math.abs(g.target-g.gx)<.0008) g.gx=g.target; moved=true; }
-      var sv=Math.abs(g.gx-g.px)/dt; g.px=g.gx; g.sl+=(Math.min(1,Math.max(0,(sv-.25)/2.2))-g.sl)*(1-Math.exp(-dt*12));
-      g.items.forEach(function(m){ if(m.burst>0){ m.burst=Math.max(0,m.burst-dt/.6); bursting=true; } });
-      if(g.dirty||moved||g.drag||g.spread!==sp0||bursting||g.sl>.01){ g.dirty=false; galLayout(now); }
-      if(now>=g.nextG){ g.nextG=now+70+Math.random()*90; galGlitch(g); }
-      if(!g.drag&&g.gx===g.target){
-        if(g.onSettle){ var f=g.onSettle; g.onSettle=null; f(); }
-        else if(!g.out&&g.pre!==g.target){ g.pre=g.target; want(g.target+1); want(g.target-1); }   /* once settled, fetch the sharp copies of the next ones */
-      }
+      if(!g.drag&&g.gx!==g.target){ g.gx+=(g.target-g.gx)*(1-Math.exp(-dt*(reduce?60:7))); if(Math.abs(g.target-g.gx)<.0008) g.gx=g.target; moved=true; }   /* a soft slide */
+      if(g.dirty||moved||g.drag||now<g.tIn+g.items.length*90+1000||(g.out&&now<g.tOut+400)){ g.dirty=false; galLayout(now); }
+      if(!g.drag&&g.gx===g.target&&!g.out&&g.pre!==g.target){ g.pre=g.target; want(g.target+1); want(g.target-1); }   /* once settled, fetch the sharp copies of the next ones */
     }
 
     function openLb(c){
@@ -399,22 +378,31 @@
     }
     function closeLb(){
       if(!lbOpen||!cur||closing) return; closing=true;
-      if(gal){
-        if(gp){ gp=null; gal.drag=false; lb.classList.remove("drag"); }
-        if(gal.target!==0||gal.gx!==0){ gal.target=0; gal.dirty=true; gal.onSettle=finishClose; return; }   /* back to the main image first, then fly home */
-      }
+      if(gal){ if(gp){ gp=null; gal.drag=false; lb.classList.remove("drag"); } closeLabel(false); }
       finishClose();
     }
     function finishClose(){
-      var c=cur, r=c.rect, b=box(c,!!gal); lb.classList.remove("in");
-      if(gal){ gal.out=true; gal.dirty=true; gal.items[0].gs.style.display="none"; lbImg.style.transition=""; lbImg.style.filter=""; lbImg.style.zIndex=""; void lbImg.offsetWidth; }
+      var c=cur, g=gal, r=c.rect, b=box(c,!!g); lb.classList.remove("in");
+      if(g){
+        var k=Math.round(g.gx), hk=g.items[k], hr=hk.rect; g.out=true; g.tOut=performance.now(); g.hk=k; g.dirty=true;
+        lbImg.style.filter=""; lbImg.style.visibility=""; lbImg.style.zIndex="";
+        if(k){   /* closing from another image: it shrinks into the card while the original (main) image fades in over it */
+          var s0=Math.sqrt(hr.w*hr.h/(b.w*b.h)), cx=hr.x+hr.w/2, cy=hr.y+hr.h/2;
+          lbImg.style.transition="none"; lbImg.style.opacity=0; lbImg.style.transform="translate("+(cx-b.w*s0/2)+"px,"+(cy-b.h*s0/2)+"px) scale("+s0+")";
+          hk.img.style.transition="transform .6s cubic-bezier(.16,.84,.3,1),opacity .4s ease-in .1s"; hk.img.style.transform=fly(r,{w:hk.w,h:hk.h}); hk.img.style.opacity=0;
+          void lbImg.offsetWidth; lbImg.style.transition="transform .6s cubic-bezier(.16,.84,.3,1),opacity .45s ease-out";
+        } else { lbImg.style.transition=""; void lbImg.offsetWidth; }
+      }
       lbImg.style.opacity=c.fog; lbImg.style.transform=fly(r,b);
       setTimeout(function(){ c.hide=false; lbOpen=false; cur=null; clearText(); step(performance.now(),true); lb.classList.remove("on"); galClose(); closing=false; },600);   /* redraw first, then drop the pop-up: no empty gap */
     }
     lb.addEventListener("click",function(e){
       if(skipClick){ skipClick=false; return; }
-      if(gal&&!gal.out&&!closing){ var k=galHit(e.clientX,e.clientY); if(k>=0&&k!==Math.round(gal.target)){ setTarget(k); return; } }   /* a click on a neighbour brings it to the centre */
-      closeLb();
+      if(gal&&!gal.out&&!closing){
+        var k=galHit(e.clientX,e.clientY);
+        if(k>=0){ if(k!==Math.round(gal.target)) setTarget(k); return; }   /* a click on a neighbour brings it to the centre; on the main image nothing happens (it is for dragging) */
+      }
+      closeLb();                                                           /* outside the images (or a pop-up with a single image): close */
     });
     lb.addEventListener("pointerdown",function(e){
       if(!gal||gal.out||closing||gp||e.button>0) return;
@@ -422,12 +410,14 @@
       gal.drag=true; lb.classList.add("drag"); try{ lb.setPointerCapture(e.pointerId); }catch(_){}
     });
     lb.addEventListener("pointermove",function(e){
+      if(gal&&!gal.out&&!closing&&e.pointerType==="mouse"){ if(gp) closeLabel(false); else closeLabel(galHit(e.clientX,e.clientY)<0,e.clientX,e.clientY); }   /* "close" shows outside the images */
       if(!gp||e.pointerId!==gp.id||!gal) return;
       var now=performance.now(), dx=e.clientX-gp.x0, n=gal.items.length, g=gp.gx0-dx/gp.unit;
       gp.moved=Math.max(gp.moved,Math.abs(dx)); gp.vx=gp.vx*.6+((e.clientX-gp.lx)/Math.max(1,now-gp.lt)*1000)*.4; gp.lx=e.clientX; gp.lt=now;
       if(g<0) g*=.35; else if(g>n-1) g=(n-1)+(g-(n-1))*.35;           /* rubber band at both ends */
       gal.gx=g; gal.dirty=true;
     });
+    lb.addEventListener("pointerleave",function(){ closeLabel(false); });
     function gend(e){
       if(!gp||e.pointerId!==gp.id) return; var p=gp, g=gal; gp=null; if(!g) return; g.drag=false; lb.classList.remove("drag");
       var start=Math.round(p.gx0), t=Math.round(g.gx-(p.vx*.22)/p.unit);

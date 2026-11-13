@@ -8,6 +8,7 @@
 - **Không sửa `data/works.js` bằng tay** trừ khi được yêu cầu: file này do builder quản lý (nội dung các work).
 
 ## Hạ tầng
+- Mã nguồn: GitHub `robertwilliamdao/way-portfolio`, nhánh `main` (repo public — không ghi token/mật khẩu vào code hay file ghi chú). Repo GitLab `way-portfolio/way-portfolio` chỉ còn là bản lưu, không dùng.
 - Host: Cloudflare Pages (project `way-portfolio`), tự deploy khi push lên nhánh `main`. Build command `exit 0`, không có bước build.
 - Tên miền: waydesigner.com + www (mua ở Cloudflare). Bản dự phòng: way-portfolio.pages.dev.
 - Form liên hệ: Web3Forms (gửi JSON tới api.web3forms.com, key nằm trong main.js) → daodinhvu2311@gmail.com.
@@ -53,8 +54,10 @@ Builder lưu mỗi ảnh thành `ten-r.webp` (≤1920px), `ten-r-1280.webp`, `te
 ## Lịch sử / đã thử và revert
 - "smooth" (hoãn tải video tới khi pop-up mở xong + giới hạn 2 video chạy cùng lúc): Mai thấy lag hơn → đã revert về bản "speed".
 - Work Protocol có 7 video → mở bị giật hơn các work khác. Chưa giải quyết; hướng đang cân nhắc: nén nhỏ video (giảm kích thước/bitrate) trước khi sửa code.
+- 07/11/2026: tài khoản GitHub bị khoá tạm thời → site từng chạy từ GitLab (project Pages `way-portfolio-gl`, builder dùng GitLab API). Sau khi được mở khoá đã chuyển về GitHub; CV mới và shot Playground làm lúc ở GitLab đã được mang sang. Builder trên GitHub giữ nguyên bản cũ (GitHub token).
 
 ## Việc còn mở
 - Protocol giật khi mở (xem trên).
 - Cloudflare Email Address Obfuscation nên tắt (nếu chưa) — nó đổi email trong trang thành [email protected].
-- Gia hạn GitHub token của builder trước 29/01/2027.
+- Gia hạn GitHub token của builder trước 29/01/2027 (nếu phải tạo token mới, ghi ngày hết hạn vào đây).
+- Sau khi chuyển về GitHub chạy ổn: thu hồi token GitLab (token `builder` của project và token cá nhân đã dùng cho Claude), rồi lưu trữ/xoá project GitLab và project Pages `way-portfolio-gl`.

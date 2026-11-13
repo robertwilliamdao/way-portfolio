@@ -263,8 +263,14 @@ html.loading .media img{opacity:0}
 .v-h4{font-size:2.4rem;line-height:.92;letter-spacing:-.025em;font-weight:500;color:var(--ink-60)}
 .v-body{font-weight:400;font-size:1.6rem;line-height:1.36;letter-spacing:-.015em;color:var(--ink-60)}
 .v-sec{display:flex;flex-direction:column;gap:2.4rem}
-.v-exp{display:flex;flex-direction:column;gap:2.8rem}
-.v-entry{display:flex;flex-direction:column;gap:2rem}
+.v-exp{display:flex;flex-direction:column;gap:3.2rem}
+/* each entry: a rotated year label on the left, joined to the next year by a thin line (Figma: Timeline) */
+.v-entry{display:grid;grid-template-columns:1.8rem minmax(0,1fr);column-gap:1.946rem}
+.v-yr{display:flex;flex-direction:column;align-items:center;gap:.8rem;padding-top:.4rem}
+.v-yr span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-weight:500;font-size:1.4rem;line-height:1.28;letter-spacing:-.015em;color:var(--charcoal)}
+.v-yr::after{content:"";flex:1 1 0;width:1px;background:var(--ink-20)}
+.v-ec{display:flex;flex-direction:column;gap:2rem;min-width:0}
+.v-entry:not(:last-child) .v-ec{padding-bottom:5.6rem}   /* the line runs on through this gap to the next year */
 .v-eh{display:flex;gap:1.4rem;align-items:center}
 .v-logo{width:4.4rem;height:4.4rem;flex-shrink:0;object-fit:cover}
 .v-role{font-size:1.6rem;line-height:1.28;letter-spacing:-.015em}
@@ -273,12 +279,11 @@ html.loading .media img{opacity:0}
 .v-pills{display:flex;flex-wrap:wrap;gap:1.2rem}
 .v-pill{display:inline-flex;align-items:center;gap:.6rem;padding:.4rem 1.2rem .4rem .4rem;border:.05rem solid var(--ink-20);border-radius:10rem;font-size:1.4rem;line-height:1.28;color:var(--charcoal);white-space:nowrap}
 .v-pill img{width:2.4rem;height:2.4rem;border-radius:50%;object-fit:cover}
-.v-div{border:0;border-top:1px solid var(--ink-20);margin:0;width:100%}
 .v-contact{display:flex;flex-direction:column;gap:.2rem}
-.v-skills{display:flex;flex-direction:column;gap:2.4rem}
+.v-link{color:var(--charcoal)} .v-link,.v-contact a{text-decoration:underline;text-underline-position:from-font}
+.v-skills,.v-awards{display:flex;flex-direction:column;gap:2.4rem}
 .v-grp{display:flex;flex-direction:column;gap:.6rem;font-weight:400;font-size:1.6rem;line-height:1.36;letter-spacing:-.015em}
 .v-grp .vt{color:var(--charcoal)} .v-grp .vi{display:flex;flex-direction:column;gap:.2rem;color:var(--ink-60)}
-.v-grp sup{font-size:.9rem;line-height:1;vertical-align:.7em;margin-left:.3rem;letter-spacing:0}
 .v-dl{align-self:flex-end}
 
 .dd-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;padding-right:1.2rem}
@@ -404,13 +409,15 @@ html.loading .media img{opacity:0}
   .vpanel .v-body,.vpanel .v-grp,.vpanel .v-contact{font-size:1.4rem;line-height:1.36}
   .v-sec{gap:2rem}
   .v-exp{gap:2.4rem}
-  .v-entry{gap:1.6rem}
+  .v-entry{column-gap:1.2rem}
+  .v-ec{gap:1.6rem}
+  .v-entry:not(:last-child) .v-ec{padding-bottom:4rem}
   .v-logo{width:3.6rem;height:3.6rem}
   .v-role{font-size:1.4rem}
   .v-list{padding-left:2.1rem}
   .v-pills{gap:1rem}
-  .v-right{flex-direction:row-reverse;align-items:flex-start;gap:2rem}
-  .v-skills{flex:1 1 0;min-width:0;gap:2rem}
+  .v-right{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 1fr;grid-template-areas:"skills contact" "skills awards";column-gap:2rem;row-gap:4rem;align-items:start}
+  .v-contact{grid-area:contact} .v-awards{grid-area:awards;gap:2rem} .v-skills{grid-area:skills;min-width:0;gap:2rem}
   .v-grp{gap:.4rem}
   .v-grp .vi{gap:0}
   .v-dl{font-size:2.4rem}

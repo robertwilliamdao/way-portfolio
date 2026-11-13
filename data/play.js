@@ -1,12 +1,16 @@
 /* Playground shots. Edited by the builder (admin/, tab Playground) or by hand.
    title = headline, note = body: shown at the bottom of the Playground while the pointer is on a shot, and under the image when it is opened.
    src = image ending in -r.webp (the site uses the -r-640 and -r-1280 copies the builder makes).
+   more = optional extra images (same format as src). They show only in the pop-up, beside the main image (src, always the first); drag sideways to see the next.
    ar / pos are optional and force a crop (aspect ratio, focus point 0..1). Without them a shot keeps its own aspect ratio. */
 window.PLAY = [
   {
     "title": "omaggio al Bailo",
     "note": "This is a page I designed to practice grid and layout, with the design based on the book \"Layout Now\" - really good book btw.",
-    "src": "assets/play/bailo-poster-mw3ordfi-r.webp"
+    "src": "assets/play/bailo-poster-mw3ordfi-r.webp",
+    "more": [
+      "assets/play/omaggio-al-bailo-2-mw68g8jl-r.webp"
+    ]
   },
   {
     "title": "Sola Loop",
